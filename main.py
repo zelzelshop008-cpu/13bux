@@ -3565,15 +3565,15 @@ async def bb(ctx):
     
 @bot.command()
 async def dh(ctx):
-    await ctx.send("dh🔫 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=dab1626449dc054bb9e1b0725849933a&type=Server")
+    await ctx.send("dh🔫 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=d3012ecd39e0e44a858f97f0882b89c2&type=Server")
 
 @bot.command()
 async def evd(ctx):
-    await ctx.send("evade🏃‍♂️ เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=c78e6734a0d2a144a53d34ee9cfe0ecc&type=Server")
+    await ctx.send("evade🏃‍♂️ เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=574d166463937949af0c5bb2a503ed8c&type=Server")
 
 @bot.command()
 async def dti(ctx):
-    await ctx.send("DTI👗 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=c2b10d95f362d54f9e4c849a4e6e9b4a&type=Server")
+    await ctx.send("DTI👗 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=fa7ae46ea4f2244bb1b0f945e53a8cbe&type=Server")
 
 @bot.command()
 async def bid(ctx):
@@ -3593,11 +3593,11 @@ async def as2(ctx):
 
 @bot.command()
 async def slime(ctx):
-    await ctx.send("Slime🦠 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=146a6f598373674cb53bb8629d8315f5&type=Server")
+    await ctx.send("Slime🦠 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=a5f5dc0fdf1dfd499ac3c82774c0e18a&type=Server")
 
 @bot.command()
 async def mini(ctx):
-    await ctx.send("Mini War🤛 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=473b13a44c78f54b9cc9e9697d72ca30&type=Server")
+    await ctx.send("Mini War🤛 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=ef693a7806665044beb8edd9aefafa0f&type=Server")
 
 @bot.command()
 async def iron(ctx):
@@ -3633,11 +3633,11 @@ async def evo(ctx):
 
 @bot.command()
 async def pet(ctx):
-    await ctx.send("Battle Pet🐶 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=74a4da2160b5594b8ba1b542cde27e70&type=Server")
+    await ctx.send("Battle Pet🐶 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=94cf53aa6983d04aabbaf9ddecc5fae1&type=Server")
 
 @bot.command()
 async def fisch(ctx):
-    await ctx.send("Fisch🐟 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=5e2a76d091d83847b68c9dba82b13bd4&type=Server")
+    await ctx.send("Fisch🐟 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=2cabaefd2ff17f4ca10621f7001bd522&type=Server")
 
 @bot.command()
 async def fish(ctx):
