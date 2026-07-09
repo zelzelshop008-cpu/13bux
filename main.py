@@ -3260,10 +3260,10 @@ class PaymentView(View):
     async def truemoney_callback(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="💰 ชำระเงินผ่านทรูมันนี่วอเล็ต",
-            description="**เบอร์โทรศัพท์:** 0892278408",
+            description="**เบอร์โทรศัพท์:** 0808219616",
             color=0xFF0000
         )
-        embed.add_field(name="👤 ชื่อบัญชี", value="ลัดดา", inline=False)
+        embed.add_field(name="👤 ชื่อบัญชี", value="กิตติ", inline=False)
         embed.add_field(name="⚠️ หมายเหตุ", value="โอนวอเล็ตบวกเพิ่ม 5%", inline=False)
         embed.set_footer(text="Sushi Shop 🍣")
         
@@ -3271,7 +3271,7 @@ class PaymentView(View):
         copy_btn = Button(label="📋 คัดลอกเบอร์", style=discord.ButtonStyle.secondary, emoji="📋")
         
         async def copy_cb(i):
-            await i.response.send_message("```0892278408```", ephemeral=True)
+            await i.response.send_message("```0808219616```", ephemeral=True)
         
         copy_btn.callback = copy_cb
         view.add_item(copy_btn)
