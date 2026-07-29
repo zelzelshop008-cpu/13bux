@@ -3573,7 +3573,7 @@ async def evd(ctx):
 
 @bot.command()
 async def dti(ctx):
-    await ctx.send("DTI👗 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=fa7ae46ea4f2244bb1b0f945e53a8cbe&type=Server")
+    await ctx.send("DTI👗 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=30190276f88fd5449788cf98e98d593c&type=Server")
 
 @bot.command()
 async def bid(ctx):
