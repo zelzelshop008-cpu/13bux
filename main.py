@@ -3647,7 +3647,7 @@ async def fish(ctx):
 async def ae(ctx):
     await ctx.send("Expedition เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=77641b47f3dee548b004d27517dd4424&type=Server")
 
-    @bot.command()
+@bot.command()
 async def moun(ctx):
     await ctx.send("Mine เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=7d70653c7eb7724283cba0fcea6d6701&type=Server")
     
