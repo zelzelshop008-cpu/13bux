@@ -3549,7 +3549,7 @@ async def say(ctx, *, message):
 
 @bot.command()
 async def dds(ctx):
-    await ctx.send("DDS🛵 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=cf4c4c363f24fb49b63215bc522e5252&type=Server")
+    await ctx.send("DDS🛵 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=9f61aab94aacfd47b1d04881a5cdcec8&type=Server")
 
 @bot.command()
 async def apo(ctx):
