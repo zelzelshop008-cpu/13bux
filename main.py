@@ -3643,6 +3643,14 @@ async def fisch(ctx):
 async def fish(ctx):
     await ctx.send("Fish it🎣 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=6e0c9708ce5006449c781456927f3a4b&type=Server")
     
+@bot.command()
+async def ae(ctx):
+    await ctx.send("Expedition เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=77641b47f3dee548b004d27517dd4424&type=Server")
+
+    @bot.command()
+async def mine(ctx):
+    await ctx.send("Expedition เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=7d70653c7eb7724283cba0fcea6d6701&type=Server")
+    
 # ============ BACKGROUND TASKS ============
 @tasks.loop(minutes=1)
 async def update_presence():
