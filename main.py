@@ -3649,7 +3649,7 @@ async def ae(ctx):
 
     @bot.command()
 async def mine(ctx):
-    await ctx.send("Expedition เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=7d70653c7eb7724283cba0fcea6d6701&type=Server")
+    await ctx.send("Mine เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=7d70653c7eb7724283cba0fcea6d6701&type=Server")
     
 # ============ BACKGROUND TASKS ============
 @tasks.loop(minutes=1)
