@@ -3592,10 +3592,6 @@ async def as2(ctx):
     await ctx.send("Story 2📓 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=7ea5efd91a5e5c45874d1bd120474ded&type=Server")
 
 @bot.command()
-async def slime(ctx):
-    await ctx.send("Slime🦠 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=a5f5dc0fdf1dfd499ac3c82774c0e18a&type=Server")
-
-@bot.command()
 async def mini(ctx):
     await ctx.send("Mini War🤛 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=ef693a7806665044beb8edd9aefafa0f&type=Server")
 
@@ -3630,10 +3626,6 @@ async def av(ctx):
 @bot.command()
 async def evo(ctx):
     await ctx.send("Evomon🐹 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=9641e497b133df4d8810246619db3c7f&type=Server")
-
-@bot.command()
-async def pet(ctx):
-    await ctx.send("Battle Pet🐶 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=94cf53aa6983d04aabbaf9ddecc5fae1&type=Server")
 
 @bot.command()
 async def fisch(ctx):
