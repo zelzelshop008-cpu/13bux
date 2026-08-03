@@ -3637,7 +3637,7 @@ async def pet(ctx):
 
 @bot.command()
 async def fisch(ctx):
-    await ctx.send("Fisch🐟 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=2cabaefd2ff17f4ca10621f7001bd522&type=Server")
+    await ctx.send("Fisch🐟 เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=bd9096bc182d8b429aea5c1cc47e6283&type=Server")
 
 @bot.command()
 async def fish(ctx):
@@ -3648,8 +3648,16 @@ async def ae(ctx):
     await ctx.send("Expedition เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=77641b47f3dee548b004d27517dd4424&type=Server")
 
 @bot.command()
-async def moun(ctx):
+async def mine(ctx):
     await ctx.send("Mine เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=7d70653c7eb7724283cba0fcea6d6701&type=Server")
+
+@bot.command()
+async def sh(ctx):
+    await ctx.send("Storage เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=b9b8075373562a40bbf0618efe247f24&type=Server")
+
+@bot.command()
+async def gk(ctx):
+    await ctx.send("Gakuran เข้าเซิฟนี้มานะคะ ถ้าเข้าไม่ได้บอกนะ https://www.roblox.com/share?code=4858686fbb022946b590b9f3628d57ee&type=Server")
     
 # ============ BACKGROUND TASKS ============
 @tasks.loop(minutes=1)
