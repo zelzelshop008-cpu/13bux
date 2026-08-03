@@ -1200,28 +1200,43 @@ class EmbedShopView(View):
     def update_buttons(self):
         self.clear_items()
         
+        # Gamepass button - red and disabled if stock is 0
+        gamepass_disabled = gamepass_stock <= 0
+        gamepass_style = discord.ButtonStyle.danger if gamepass_disabled else discord.ButtonStyle.success
+        
         gamepass_btn = Button(
-            label="กดเกมพาส", 
-            style=discord.ButtonStyle.success if shop_open else discord.ButtonStyle.danger, 
+            label=f"กดเกมพาส (Stock: {format_number(gamepass_stock)})", 
+            style=gamepass_style, 
             emoji="🎮", 
-            disabled=not shop_open
+            disabled=gamepass_disabled
         )
+        
+        # Group button - red and disabled if stock is 0
+        group_disabled = group_stock <= 0
+        group_style = discord.ButtonStyle.danger if group_disabled else discord.ButtonStyle.success
+        
         group_btn = Button(
-            label="เติมโรกลุ่ม", 
-            style=discord.ButtonStyle.success if shop_open else discord.ButtonStyle.danger, 
+            label=f"เติมโรกลุ่ม (Stock: {format_number(group_stock)})", 
+            style=group_style, 
             emoji="👥", 
-            disabled=not shop_open
+            disabled=group_disabled
         )
         
         async def gamepass_cb(i):
             if not shop_open:
                 await i.response.send_message("❌ ร้านปิดชั่วคราว กรุณารอเปิดให้บริการ", ephemeral=True)
                 return
+            if gamepass_stock <= 0:
+                await i.response.send_message("❌ เกมพาสสต็อกหมด กรุณารอเติมสต็อก", ephemeral=True)
+                return
             await handle_open_ticket(i, "🍣Sushi Gamepass 🍣", "gamepass")
         
         async def group_cb(i):
             if not shop_open:
                 await i.response.send_message("❌ ร้านปิดชั่วคราว กรุณารอเปิดให้บริการ", ephemeral=True)
+                return
+            if group_stock <= 0:
+                await i.response.send_message("❌ โรกลุ่มสต็อกหมด กรุณารอเติมสต็อก", ephemeral=True)
                 return
             await handle_open_ticket(i, "💰Robux Group💰", "group")
         
@@ -1623,22 +1638,46 @@ async def update_main_channel():
         if not channel:
             return
         
-        embed = discord.Embed(title="🍣 Sushi Shop 🍣 เปิดให้บริการ" if shop_open else "🍣 Sushi Shop 🍣 ปิดให้บริการ", 
-                              color=0xFFA500 if shop_open else 0xFF0000)
+        # Determine if shop is open and stock status
+        gamepass_available = gamepass_stock > 0
+        group_available = group_stock > 0
+        shop_status = shop_open and (gamepass_available or group_available)
+        
+        # Set status text and color
+        if shop_open and gamepass_available and group_available:
+            status_text = "🍣 Sushi Shop 🍣 เปิดให้บริการ"
+            color = 0x00FF00
+        elif shop_open and (gamepass_available or group_available):
+            status_text = "🍣 Sushi Shop 🍣 เปิดให้บริการ (สินค้าบางรายการหมด)"
+            color = 0xFFA500
+        else:
+            status_text = "🍣 Sushi Shop 🍣 ปิดให้บริการ"
+            color = 0xFF0000
+        
+        embed = discord.Embed(title=status_text, color=color)
+        
+        # Gamepass field with stock and color indicator
+        gamepass_status = "🟢" if gamepass_available else "🔴"
+        gamepass_label = f"🎮 กดเกมพาส | 📦 Stock: {format_number(gamepass_stock)} {gamepass_status}"
         embed.add_field(
-            name=f"🎮 กดเกมพาส | 📦 Stock: {format_number(gamepass_stock)} {'🟢' if gamepass_stock > 0 else '🔴'}", 
-            value=f"```เรท: {gamepass_rate})```", 
+            name=gamepass_label,
+            value=f"```เรท: {gamepass_rate})```",
             inline=False
         )
+        
+        # Group field with stock and color indicator
+        group_status = "🟢" if group_available else "🔴"
+        group_label = f"👥 โรบัคกลุ่ม | 📦 Stock: {format_number(group_stock)} {group_status}"
         embed.add_field(
-            name=f"👥 โรบัคกลุ่ม | 📦 Stock: {format_number(group_stock)} {'🟢' if group_stock > 0 else '🔴'}", 
-            value=f"```เรท: {group_rate_low} | 500 บาท+ เรท {group_rate_high}\n⚠️เข้ากลุ่ม 15 วันก่อนซื้อ⚠️```", 
+            name=group_label,
+            value=f"```เรท: {group_rate_low} | 500 บาท+ เรท {group_rate_high}\n⚠️เข้ากลุ่ม 15 วันก่อนซื้อ⚠️```",
             inline=False
         )
-        embed.set_thumbnail(url="https://media.discordapp.net/attachments/717757556889747657/1403684950770847754/noFilter.png")
-        embed.set_image(url="https://media.discordapp.net/attachments/1485285161955360963/1502507253503230093/image.png?ex=69fff66c&is=69fea4ec&hm=d2946d4c205609da498cdef9007d68259ba4a0df21243332f1086fc6adc3e994&=&format=webp&quality=lossless&width=1733&height=1155")
+        
+        embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/717757556889747657/1403684950770847754/noFilter.png")
+        embed.set_image(url="https://media.discordapp.net/attachments/1485285161955360963/1533864592957247539/file_0000000022e88206b072f316912c0796.png?ex=6a720a38&is=6a70b8b8&hm=71d9bc7e2e2e7add82f99b62b5f741f31e0e6a52280e12e1ed21610a4464eef0&=&format=webp&quality=lossless&width=1733&height=1155")
         embed.set_footer(
-            text=f"Sushi กดเกมพาส |: {get_thailand_time().strftime('%d/%m/%y %H:%M')}", 
+            text=f"Sushi กดเกมพาส |: {get_thailand_time().strftime('%d/%m/%y %H:%M')}",
             icon_url="https://media.discordapp.net/attachments/717757556889747657/1403684950770847754/noFilter.png"
         )
         
