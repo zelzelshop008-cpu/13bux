@@ -1200,23 +1200,31 @@ class EmbedShopView(View):
     def update_buttons(self):
         self.clear_items()
         
-        # Gamepass button - red and disabled if stock is 0
-        gamepass_disabled = gamepass_stock <= 0
+        # Gamepass button - red and disabled if shop is closed OR stock is 0
+        gamepass_disabled = (not shop_open) or (gamepass_stock <= 0)
         gamepass_style = discord.ButtonStyle.danger if gamepass_disabled else discord.ButtonStyle.success
         
+        stock_display = "🔴" if gamepass_stock <= 0 else "🟢"
+        if not shop_open:
+            stock_display = "🔴"  # Force red when shop closed
+        
         gamepass_btn = Button(
-            label=f"กดเกมพาส (Stock: {format_number(gamepass_stock)})", 
+            label=f"กดเกมพาส (Stock: {format_number(gamepass_stock)}) {stock_display}", 
             style=gamepass_style, 
             emoji="🎮", 
             disabled=gamepass_disabled
         )
         
-        # Group button - red and disabled if stock is 0
-        group_disabled = group_stock <= 0
+        # Group button - red and disabled if shop is closed OR stock is 0
+        group_disabled = (not shop_open) or (group_stock <= 0)
         group_style = discord.ButtonStyle.danger if group_disabled else discord.ButtonStyle.success
         
+        stock_display = "🔴" if group_stock <= 0 else "🟢"
+        if not shop_open:
+            stock_display = "🔴"  # Force red when shop closed
+        
         group_btn = Button(
-            label=f"เติมโรกลุ่ม (Stock: {format_number(group_stock)})", 
+            label=f"เติมโรกลุ่ม (Stock: {format_number(group_stock)}) {stock_display}", 
             style=group_style, 
             emoji="👥", 
             disabled=group_disabled
@@ -1638,26 +1646,28 @@ async def update_main_channel():
         if not channel:
             return
         
-        # Determine if shop is open and stock status
-        gamepass_available = gamepass_stock > 0
-        group_available = group_stock > 0
-        shop_status = shop_open and (gamepass_available or group_available)
-        
-        # Set status text and color
-        if shop_open and gamepass_available and group_available:
+        # Determine shop status
+        if not shop_open:
+            status_text = "🍣 Sushi Shop 🍣 ปิดให้บริการ"
+            color = 0xFF0000
+        elif shop_open and gamepass_stock > 0 and group_stock > 0:
             status_text = "🍣 Sushi Shop 🍣 เปิดให้บริการ"
             color = 0x00FF00
-        elif shop_open and (gamepass_available or group_available):
+        elif shop_open and (gamepass_stock > 0 or group_stock > 0):
             status_text = "🍣 Sushi Shop 🍣 เปิดให้บริการ (สินค้าบางรายการหมด)"
             color = 0xFFA500
         else:
-            status_text = "🍣 Sushi Shop 🍣 ปิดให้บริการ"
+            status_text = "🍣 Sushi Shop 🍣 ปิดให้บริการ (สินค้าหมด)"
             color = 0xFF0000
         
         embed = discord.Embed(title=status_text, color=color)
         
         # Gamepass field with stock and color indicator
-        gamepass_status = "🟢" if gamepass_available else "🔴"
+        if not shop_open:
+            gamepass_status = "🔴"
+        else:
+            gamepass_status = "🟢" if gamepass_stock > 0 else "🔴"
+        
         gamepass_label = f"🎮 กดเกมพาส | 📦 Stock: {format_number(gamepass_stock)} {gamepass_status}"
         embed.add_field(
             name=gamepass_label,
@@ -1666,7 +1676,11 @@ async def update_main_channel():
         )
         
         # Group field with stock and color indicator
-        group_status = "🟢" if group_available else "🔴"
+        if not shop_open:
+            group_status = "🔴"
+        else:
+            group_status = "🟢" if group_stock > 0 else "🔴"
+        
         group_label = f"👥 โรบัคกลุ่ม | 📦 Stock: {format_number(group_stock)} {group_status}"
         embed.add_field(
             name=group_label,
