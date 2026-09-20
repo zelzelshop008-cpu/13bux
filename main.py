@@ -80,7 +80,7 @@ intents.message_content = True
 intents.members = True
 
 # ============ CONSTANTS ============
-ROBUX_EMOJI = "<:robux:1234567890123456789>"  # Replace with your actual robux emoji
+# CHANGE 1: Removed ROBUX_EMOJI - now using plain text "Robux"
 SUSHI_HEART_EMOJI = "💖"
 
 WELCOME_MESSAGES = [
@@ -115,8 +115,13 @@ ANONYMOUS_USER_ROLE_ID = 1486352633290821673
 ADMIN_ROLE_ID = 1535667589433397348
 NOTES_BUTTON_CHANNEL_ID = 1485277532088696995
 NOTES_LOG_CHANNEL_ID = 1504349990460461066
+# CHANGE 5: New category for เติมโรแท้ tickets
+ROBUX_TOPUP_CATEGORY_ID = 1475342278976606228  # Change this to your preferred category ID
 
-THUMBNAIL_URL = "https://media.discordapp.net/attachments/1535881071403601970/1551140774773530755/Screenshot_2026-09-20_143848.png?ex=6ab0e3eb&is=6aaf926b&hm=c2dd13e974250458a77299eda0bb56a8fd7ae491c19683307863e6f89da94dd4&=&format=webp&quality=lossless&width=1299&height=1299"
+# CHANGE 3: Updated thumbnail and big image URLs
+THUMBNAIL_URL = "https://media.discordapp.net/attachments/1460628263092359199/1535925883989135381/cachedMedia.png?ex=6ab04032&is=6aaeeeb2&hm=739c2b4d506db1adca5c6188257f08e376e992237abb8ca888e69faadc3d4678&=&format=webp&quality=lossless&width=1299&height=1299"
+
+MAIN_IMAGE_URL = "https://media.discordapp.net/attachments/1535629996910182410/1542419322209697832/58082bd2-71f2-4132-a16d-64154fc001e5.png?ex=6ab0cd6f&is=6aaf7bef&hm=f22fb4eb2d2d2ed351bb83a23d1393c4891dc1491c8453e990e72cb2e0f15e5c&=&format=webp&quality=lossless&width=1623&height=1299"
 
 # File paths
 user_data_file = os.path.join(DATA_DIR, "user_data.json")
@@ -159,7 +164,6 @@ sp_added_tracker = {}
 
 # ============ JSON HELPER FUNCTIONS ============
 def save_json(filepath, data):
-    """Save data to JSON file safely"""
     try:
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         temp_filepath = filepath + ".tmp"
@@ -172,7 +176,6 @@ def save_json(filepath, data):
         return False
 
 def load_json(filepath, default=None):
-    """Load data from JSON file safely"""
     try:
         if os.path.exists(filepath):
             with open(filepath, 'r', encoding='utf-8') as f:
@@ -184,7 +187,6 @@ def load_json(filepath, default=None):
 
 # ============ STOCK FUNCTIONS ============
 def save_stock_values():
-    """Save stock and rate values to file"""
     try:
         data = {
             "gamepass_stock": gamepass_stock,
@@ -202,7 +204,6 @@ def save_stock_values():
         return False
 
 def load_stock_values():
-    """Load stock and rate values from file"""
     global gamepass_stock, gamepass_rate, gamepass_rate_high, gamepass_threshold, shop_open
     try:
         if os.path.exists(stock_file):
@@ -220,7 +221,6 @@ def load_stock_values():
 
 # ============ DAILY SALES FUNCTIONS ============
 def save_daily_sales():
-    """Save daily sales data to file"""
     try:
         data = {
             "robux_sold": daily_robux_sold,
@@ -234,7 +234,6 @@ def save_daily_sales():
         return False
 
 def load_daily_sales():
-    """Load daily sales data from file"""
     global daily_robux_sold, daily_sales_date
     try:
         if os.path.exists(daily_sales_file):
@@ -259,7 +258,6 @@ def load_daily_sales():
         print(f"❌ Error loading daily sales: {e}")
 
 async def add_daily_robux(amount):
-    """Add robux to daily sales tracking"""
     global daily_robux_sold, daily_sales_date
     try:
         current_date = get_thailand_time().strftime("%Y%m%d")
@@ -274,7 +272,6 @@ async def add_daily_robux(amount):
         print(f"❌ Error adding daily robux: {e}")
 
 def reset_daily_robux():
-    """Reset daily robux sales to 0"""
     global daily_robux_sold, daily_sales_date
     daily_robux_sold = 0
     daily_sales_date = get_thailand_time().strftime("%Y%m%d")
@@ -283,7 +280,6 @@ def reset_daily_robux():
 
 # ============ SP FUNCTIONS ============
 async def add_sp(user_id, robux_amount, ticket_id=None):
-    """Add SP to a user"""
     try:
         user_id_str = str(user_id)
         
@@ -309,7 +305,6 @@ async def add_sp(user_id, robux_amount, ticket_id=None):
         return False
 
 def backup_user_levels():
-    """Create a backup of user levels"""
     try:
         if os.path.exists(user_levels_file):
             backup_dir = os.path.join(DATA_DIR, "backups")
@@ -330,7 +325,6 @@ def backup_user_levels():
 
 # ============ LOAD/SAVE ALL DATA ============
 def load_all_data():
-    """Load all data from files"""
     global user_data, ticket_transcripts, ticket_robux_data, ticket_customer_data
     global ticket_buyer_data, user_levels, user_notes, ticket_counter
     
@@ -364,7 +358,6 @@ def load_all_data():
         return False
 
 async def save_all_data():
-    """Save all data to files (async version)"""
     try:
         save_json(user_data_file, user_data)
         save_json(ticket_transcripts_file, ticket_transcripts)
@@ -383,7 +376,6 @@ async def save_all_data():
         return False
 
 def save_all_data_sync():
-    """Save all data to files (sync version for signal handlers)"""
     try:
         save_json(user_data_file, user_data)
         save_json(ticket_transcripts_file, ticket_transcripts)
@@ -404,7 +396,6 @@ def save_all_data_sync():
 
 # ============ ROBUX BALANCE FUNCTIONS ============
 def load_robux_balance():
-    """Load user robux balance from file"""
     global user_robux_balance
     try:
         if os.path.exists(user_robux_balance_file):
@@ -422,7 +413,6 @@ def load_robux_balance():
         user_robux_balance = {}
 
 def save_robux_balance():
-    """Save user robux balance to file"""
     try:
         with open(user_robux_balance_file, 'w', encoding='utf-8') as f:
             json.dump(user_robux_balance, f, ensure_ascii=False, indent=2)
@@ -483,9 +473,7 @@ def save_notes():
         print(f"❌ Error saving notes: {e}")
         return False
 
-# ============ NOTES CHANNEL (placeholder) ============
 async def update_notes_channel():
-    """Placeholder for notes channel update"""
     try:
         print("ℹ️ Notes channel update called (no implementation)")
     except Exception as e:
@@ -498,7 +486,6 @@ def get_gamepass_rate(robux_amount):
     return gamepass_rate
 
 def calculate_wallet_price(price):
-    """Calculate wallet price with 5% surcharge"""
     return round_price(price * 1.05)
 
 class RateLimiter:
@@ -576,6 +563,42 @@ def evaluate_expression(expr: str) -> float:
         raise ValueError(f"Invalid expression: {str(e)}")
 
 
+# ============ CHANGE 5: ROBUX TOPUP PACKAGE VIEW ============
+class RobuxTopupPackageView(View):
+    """View with 3 buttons for choosing robux topup packages"""
+    def __init__(self):
+        super().__init__(timeout=None)
+        
+        starter_btn = Button(label="แพ็กเริ่มต้น", style=discord.ButtonStyle.success, emoji="🌱")
+        popular_btn = Button(label="แพ็กยอดนิยม", style=discord.ButtonStyle.primary, emoji="⭐")
+        big_btn = Button(label="แพ็กใหญ่", style=discord.ButtonStyle.danger, emoji="💎")
+        
+        starter_btn.callback = self.starter_callback
+        popular_btn.callback = self.popular_callback
+        big_btn.callback = self.big_callback
+        
+        self.add_item(starter_btn)
+        self.add_item(popular_btn)
+        self.add_item(big_btn)
+    
+    async def _handle_package(self, interaction, package_name):
+        admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
+        admin_mention = admin_role.mention if admin_role else f"<@&{ADMIN_ROLE_ID}>"
+        
+        await interaction.response.send_message(
+            f"รับออร์เดอร์ค่ะ รอแอดมินตอบกลับนะคะ {admin_mention}\n📦 แพ็ก: **{package_name}**"
+        )
+    
+    async def starter_callback(self, interaction: discord.Interaction):
+        await self._handle_package(interaction, "แพ็กเริ่มต้น")
+    
+    async def popular_callback(self, interaction: discord.Interaction):
+        await self._handle_package(interaction, "แพ็กยอดนิยม")
+    
+    async def big_callback(self, interaction: discord.Interaction):
+        await self._handle_package(interaction, "แพ็กใหญ่")
+
+
 class CalculatorView(View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -618,13 +641,14 @@ class GamepassCalculatorModal(Modal, title="🌸 คำนวณเกมพา�
             price = robux / rate
             price_int = round_price(price)
             
+            # CHANGE 1: Removed ROBUX_EMOJI, using plain "Robux"
             if robux > gamepass_threshold:
-                rate_text = f"เรท {rate} (มากกว่า {gamepass_threshold} {ROBUX_EMOJI})"
+                rate_text = f"เรท {rate} (มากกว่า {gamepass_threshold} Robux)"
             else:
                 rate_text = f"เรท {rate}"
             
             embed = discord.Embed(
-                title=f"🎮 Gamepass {format_number(robux)} {ROBUX_EMOJI} = {format_number(price_int)} บาท ({rate_text})",
+                title=f"🎮 Gamepass {format_number(robux)} Robux = {format_number(price_int)} บาท ({rate_text})",
                 color=0xFFA500
             )
             embed.set_footer(text="13bux 🌸")
@@ -656,12 +680,13 @@ class GamepassBahtCalculatorModal(Modal, title="🌸 คำนวณเงิน
             robux_normal = int(baht * gamepass_rate)
             robux_high = int(baht * gamepass_rate_high)
             
+            # CHANGE 1: Removed ROBUX_EMOJI
             embed = discord.Embed(
                 title=f"🎮 {format_number(int(baht))} บาท",
                 color=0xFFA500
             )
-            embed.add_field(name=f"เรท {gamepass_rate} (ปกติ)", value=f"{format_number(robux_normal)} {ROBUX_EMOJI}", inline=True)
-            embed.add_field(name=f"เรท {gamepass_rate_high} (> {gamepass_threshold} {ROBUX_EMOJI})", value=f"{format_number(robux_high)} {ROBUX_EMOJI}", inline=True)
+            embed.add_field(name=f"เรท {gamepass_rate} (ปกติ)", value=f"{format_number(robux_normal)} Robux", inline=True)
+            embed.add_field(name=f"เรท {gamepass_rate_high} (> {gamepass_threshold} Robux)", value=f"{format_number(robux_high)} Robux", inline=True)
             embed.set_footer(text="13bux 🌸")
             
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -672,6 +697,7 @@ class GamepassBahtCalculatorModal(Modal, title="🌸 คำนวณเงิน
             await interaction.response.send_message(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
 
 
+# ============ CHANGE 4: EMBED SHOP VIEW WITH NEW BUTTONS ============
 class EmbedShopView(View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -686,6 +712,21 @@ class EmbedShopView(View):
         stock_display = "🔴" if gamepass_stock <= 0 else "🟢"
         if not shop_open:
             stock_display = "🔴"
+        
+        # CHANGE 4: Green button "เติมโรแท้"
+        topup_btn = Button(
+            label="เติมโรแท้",
+            style=discord.ButtonStyle.success,
+            emoji="💎",
+            disabled=not shop_open
+        )
+        
+        # CHANGE 4: Grey button "แจ้งปัญหา"
+        issue_btn = Button(
+            label="แจ้งปัญหา",
+            style=discord.ButtonStyle.secondary,
+            emoji="⚠️"
+        )
         
         gamepass_btn = Button(
             label=f"กดเกมพาส (Stock: {format_number(gamepass_stock)}) {stock_display}", 
@@ -703,9 +744,147 @@ class EmbedShopView(View):
                 return
             await handle_open_ticket(i, "🌸Sushi Gamepass 🌸", "gamepass")
         
+        async def topup_cb(i):
+            if not shop_open:
+                await i.response.send_message("❌ ร้านปิดชั่วคราว กรุณารอเปิดให้บริการ", ephemeral=True)
+                return
+            await handle_open_topup_ticket(i)
+        
+        async def issue_cb(i):
+            await i.response.send_message(
+                "⚠️ หากพบปัญหากรุณาติดต่อแอดมินโดยตรง หรือแจ้งในตั๋วของคุณ",
+                ephemeral=True
+            )
+        
         gamepass_btn.callback = gamepass_cb
+        topup_btn.callback = topup_cb
+        issue_btn.callback = issue_cb
         
         self.add_item(gamepass_btn)
+        self.add_item(topup_btn)
+        self.add_item(issue_btn)
+
+
+# ============ CHANGE 5: TOPUP TICKET HANDLER ============
+async def handle_open_topup_ticket(interaction):
+    """Open a ticket for robux topup with 3 package choices"""
+    try:
+        if not shop_open:
+            await interaction.response.send_message("❌ ปิดชั่วคราว กรุณารอร้านเปิด", ephemeral=True)
+            return
+        
+        existing = discord.utils.get(
+            interaction.guild.text_channels, 
+            name=f"topup-{interaction.user.name}-{interaction.user.id}".lower()
+        )
+        
+        if existing:
+            view = View()
+            view.add_item(discord.ui.Button(
+                label="📩 ไปที่ตั๋ว", 
+                url=f"https://discord.com/channels/{existing.guild.id}/{existing.id}", 
+                style=discord.ButtonStyle.link
+            ))
+            await interaction.response.send_message(
+                "📌 คุณมีตั๋วเติมโรแท้เปิดอยู่แล้ว กดปุ่มด้านล่างเพื่อไปที่ตั๋ว", 
+                view=view, 
+                ephemeral=True
+            )
+            return
+        
+        overwrites = {
+            interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True),
+            interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        }
+        
+        admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        
+        category = None
+        if ROBUX_TOPUP_CATEGORY_ID:
+            category = discord.utils.get(interaction.guild.categories, id=ROBUX_TOPUP_CATEGORY_ID)
+            if not category:
+                category = discord.utils.get(interaction.guild.categories, name="🌸Sushi Gamepass 🌸")
+        
+        if not category:
+            await interaction.response.send_message("❌ ไม่พบหมวดหมู่สำหรับตั๋วเติมโรแท้", ephemeral=True)
+            return
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        channel = await interaction.guild.create_text_channel(
+            name=f"topup-{interaction.user.name}-{interaction.user.id}".lower(),
+            overwrites=overwrites,
+            category=category
+        )
+        
+        ticket_activity[channel.id] = {
+            'last_activity': get_thailand_time(), 
+            'ty_used': False,
+            'buyer_id': interaction.user.id
+        }
+        
+        ticket_buyer_data[str(channel.id)] = {
+            "user_id": interaction.user.id,
+            "user_name": interaction.user.name,
+            "user_display": interaction.user.display_name,
+            "created_at": get_thailand_time().isoformat()
+        }
+        save_json(ticket_buyer_data_file, ticket_buyer_data)
+        
+        if is_user_always_anonymous(interaction.user):
+            ticket_anonymous_mode[str(channel.id)] = True
+            ticket_customer_data[str(channel.id)] = "ไม่ระบุตัวตน"
+        else:
+            ticket_customer_data[str(channel.id)] = interaction.user.name
+        
+        save_json(ticket_customer_data_file, ticket_customer_data)
+        
+        # Send link to user
+        view = View()
+        view.add_item(discord.ui.Button(
+            label="📩 ไปที่ตั๋ว", 
+            url=f"https://discord.com/channels/{channel.guild.id}/{channel.id}", 
+            style=discord.ButtonStyle.link
+        ))
+        await interaction.followup.send("📩 เปิดตั๋วเติมโรแท้เรียบร้อย", view=view, ephemeral=True)
+        
+        # Welcome embed in ticket
+        user_balance = get_user_robux_balance(interaction.user.id)
+        balance_display = f"{user_balance:.2f}" if user_balance > 0 else "0"
+        
+        embed = discord.Embed(
+            title="💎 บริการเติมโรแท้ (Robux แท้)", 
+            color=0x00FF99
+        )
+        embed.add_field(name="👤 ผู้ซื้อ", value=interaction.user.mention, inline=False)
+        embed.add_field(name="💵 เงินคงเหลือ", value=f"**{balance_display}** บาท", inline=False)
+        embed.add_field(
+            name="📦 เลือกแพ็กที่ต้องการ", 
+            value="กรุณากดปุ่มด้านล่างเพื่อเลือกแพ็ก", 
+            inline=False
+        )
+        embed.set_footer(text="13bux • เติมโรแท้")
+        embed.set_thumbnail(url=THUMBNAIL_URL)
+        
+        await channel.send(embed=embed, view=RobuxTopupPackageView())
+        print(f"✅ ส่ง embed เติมโรแท้ในตั๋ว {channel.name}")
+
+        if admin_role:
+            await channel.send(content=f"{admin_role.mention} มีตั๋วเติมโรแท้ใหม่!", delete_after=10)
+        
+        await channel.send(f"# เลือกแพ็กด้านบนได้เลยค่ะ {SUSHI_HEART_EMOJI}")
+        
+    except Exception as e:
+        print(f"❌ Error opening topup ticket: {e}")
+        traceback.print_exc()
+        try:
+            await interaction.followup.send(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
+        except:
+            pass
+
 
 class GamepassTicketModal(Modal, title="📋 แบบฟอร์มกดเกมพาส"):
     map_name = TextInput(
@@ -751,10 +930,10 @@ class GamepassTicketModal(Modal, title="📋 แบบฟอร์มกดเ�
             embed = discord.Embed(title="📨 รายละเอียดการสั่งซื้อ", color=0x00FF99)
             embed.add_field(name="🗺️ ชื่อแมพ", value=self.map_name.value, inline=False)
             embed.add_field(name="🎟 เกมพาส", value=self.gamepass_name.value, inline=False)
-            embed.add_field(name=f"💸 ราคา{ROBUX_EMOJI}", value=f"{format_number(robux)}", inline=True)
+            embed.add_field(name="💸 ราคา Robux", value=f"{format_number(robux)}", inline=True)
             embed.add_field(name="💰 ราคา", value=f"{format_number(price_int)} บาท", inline=True)
             if robux > gamepass_threshold:
-                embed.add_field(name="⚡ เรท", value=f"{rate} (มากกว่า {gamepass_threshold} {ROBUX_EMOJI})", inline=True)
+                embed.add_field(name="⚡ เรท", value=f"{rate} (มากกว่า {gamepass_threshold} Robux)", inline=True)
             embed.set_footer(text="แอดมินจะตอบกลับเร็วๆนี้")
             
             view = View(timeout=300)
@@ -850,7 +1029,7 @@ class DeliveryView(View):
                                 color=receipt_color
                             )
                             log_embed.add_field(name="😊 ผู้ซื้อ", value=buyer_display, inline=False)
-                            log_embed.add_field(name=f"💸 จำนวน{ROBUX_EMOJI}", value=f"{format_number(self.robux_amount)}", inline=True)
+                            log_embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(self.robux_amount)}", inline=True)
                             price_int = round_price(self.price)
                             log_embed.add_field(name="💰 ราคาตามเรท", value=f"{format_number(price_int)} บาท", inline=True)
                             
@@ -870,7 +1049,7 @@ class DeliveryView(View):
                                     color=receipt_color
                                 )
                                 dm_embed.add_field(name="📦 สินค้า", value=self.product_type, inline=True)
-                                dm_embed.add_field(name=f"💸 จำนวน{ROBUX_EMOJI}", value=f"{format_number(self.robux_amount)}", inline=True)
+                                dm_embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(self.robux_amount)}", inline=True)
                                 price_int = round_price(self.price)
                                 dm_embed.add_field(name="💰 ราคา", value=f"{format_number(price_int)} บาท", inline=True)
                                 
@@ -1035,6 +1214,7 @@ async def update_channel_name():
     except Exception as e:
         print(f"❌ Error updating channel name: {e}")
 
+# ============ CHANGE 3: UPDATED MAIN CHANNEL WITH NEW IMAGES ============
 async def update_main_channel():
     try:
         channel = bot.get_channel(MAIN_CHANNEL_ID)
@@ -1065,8 +1245,9 @@ async def update_main_channel():
             inline=False
         )
         
+        # CHANGE 3: New thumbnail and image URLs
         embed.set_thumbnail(url=THUMBNAIL_URL)
-        embed.set_image(url="https://media.discordapp.net/attachments/1485285161955360963/1533864592957247539/file_0000000022e88206b072f316912c0796.png?ex=6a720a38&is=6a70b8b8&hm=71d9bc7e2e2e7add82f99b62b5f741f31e0e6a52280e12e1ed21610a4464eef0&=&format=webp&quality=lossless&width=1733&height=1155")
+        embed.set_image(url=MAIN_IMAGE_URL)
         embed.set_footer(
             text=f"13bux กดเกมพาส |: {get_thailand_time().strftime('%d/%m/%y %H:%M')}",
             icon_url=THUMBNAIL_URL
@@ -1209,7 +1390,7 @@ async def handle_open_ticket(interaction, category_name, stock_type):
         if stock_type == "gamepass":
             embed.add_field(
                 name="🎮 บริการกดเกมพาส", 
-                value=f"📦 โรบัคคงเหลือ: **{format_number(gamepass_stock)}**\n💰 เรท: {gamepass_rate} (ปกติ) | {gamepass_rate_high} (>{gamepass_threshold} {ROBUX_EMOJI})", 
+                value=f"📦 โรบัคคงเหลือ: **{format_number(gamepass_stock)}**\n💰 เรท: {gamepass_rate} (ปกติ) | {gamepass_rate_high} (>{gamepass_threshold} Robux)", 
                 inline=False
             )
         
@@ -1218,7 +1399,6 @@ async def handle_open_ticket(interaction, category_name, stock_type):
         
         ticket_view = View(timeout=None)
         
-        form_btn = None
         if stock_type == "gamepass":
             form_btn = Button(label="📝 กรอกแบบฟอร์มเกมพาส", style=discord.ButtonStyle.primary, emoji="📝")
             
@@ -1541,7 +1721,7 @@ async def close_cmd(ctx):
 async def robuxtoday_cmd(ctx):
     embed = discord.Embed(
         title="📊 ยอดขายโรบัค",
-        description=f"**{format_number(daily_robux_sold)}** {ROBUX_EMOJI}",
+        description=f"**{format_number(daily_robux_sold)}** Robux",
         color=0x00FF99
     )
     embed.set_footer(text=f"ข้อมูล ณ วันที่ {get_thailand_time().strftime('%d/%m/%Y')}")
@@ -1554,7 +1734,7 @@ async def reset_robuxtoday_cmd(ctx):
     
     embed = discord.Embed(
         title="🔄 รีเซ็ตยอดขายโรบัคเรียบร้อย",
-        description=f"ยอดขายโรบัคถูกรีเซ็ตเป็น **0** {ROBUX_EMOJI}",
+        description=f"ยอดขายโรบัคถูกรีเซ็ตเป็น **0** Robux",
         color=0x00FF00
     )
     embed.set_footer(text=f"รีเซ็ตโดย {ctx.author.name} • {get_thailand_time().strftime('%d/%m/%Y %H:%M:%S')}")
@@ -1605,7 +1785,7 @@ async def rate(ctx, rate_type=None, low_rate=None, high_rate=None):
     
     if rate_type is None:
         embed = discord.Embed(title="🌸 เรทโรบัคปัจจุบัน", color=0x00FF99)
-        embed.add_field(name="🎮 Gamepass Rate", value=f"**{gamepass_rate}** (ปกติ) | **{gamepass_rate_high}** (>{gamepass_threshold} {ROBUX_EMOJI})", inline=True)
+        embed.add_field(name="🎮 Gamepass Rate", value=f"**{gamepass_rate}** (ปกติ) | **{gamepass_rate_high}** (>{gamepass_threshold} Robux)", inline=True)
         await ctx.send(embed=embed)
         
     elif rate_type.lower() == "gamepass":
@@ -1618,7 +1798,7 @@ async def rate(ctx, rate_type=None, low_rate=None, high_rate=None):
             gamepass_rate = float(low_rate)
             gamepass_rate_high = float(high_rate)
             save_stock_values()
-            embed = discord.Embed(title="✅ เปลี่ยนเรทเกมพาสเรียบร้อย", description=f"ตั้งค่าเรทเกมพาสเป็น **{gamepass_rate}** (ปกติ) | **{gamepass_rate_high}** (>{gamepass_threshold} {ROBUX_EMOJI}) เรียบร้อยแล้ว", color=0x00FF00)
+            embed = discord.Embed(title="✅ เปลี่ยนเรทเกมพาสเรียบร้อย", description=f"ตั้งค่าเรทเกมพาสเป็น **{gamepass_rate}** (ปกติ) | **{gamepass_rate_high}** (>{gamepass_threshold} Robux) เรียบร้อยแล้ว", color=0x00FF00)
             await ctx.send(embed=embed)
             await update_main_channel()
         except ValueError:
@@ -1691,10 +1871,10 @@ async def od(ctx, *, expr):
         
         embed = discord.Embed(title="🌸คำสั่งซื้อสินค้า🌸", color=0xFFA500)
         embed.add_field(name="📦 ประเภทสินค้า", value="Gamepass", inline=False)
-        embed.add_field(name=f"💸 จำนวน{ROBUX_EMOJI}", value=f"{format_number(robux)}", inline=True)
+        embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(robux)}", inline=True)
         embed.add_field(name="💰 ราคาตามเรท", value=f"{format_number(price_int)} บาท", inline=True)
         if robux > gamepass_threshold:
-            embed.add_field(name="⚡ เรท", value=f"{rate} (มากกว่า {gamepass_threshold} {ROBUX_EMOJI})", inline=True)
+            embed.add_field(name="⚡ เรท", value=f"{rate} (มากกว่า {gamepass_threshold} Robux)", inline=True)
         
         if balance_message:
             embed.add_field(name="💵 เงินคงเหลือ", value=balance_message, inline=False)
@@ -1718,7 +1898,7 @@ async def tkd_cmd(ctx):
     
     valid_formats = False
     
-    if channel_name.startswith("ticket-"):
+    if channel_name.startswith("ticket-") or channel_name.startswith("topup-"):
         valid_formats = True
     
     pattern = r'^\d{10}-\d+-[\w\u0E00-\u0E7F]+$'
@@ -1872,7 +2052,7 @@ async def process_order_more_fixed(channel, buyer, interaction):
         order_embed.add_field(name="👤 ผู้ซื้อ", value=buyer.mention if buyer else "ไม่ระบุ", inline=False)
         order_embed.add_field(
             name="🎮 บริการกดเกมพาส", 
-            value=f"📦 โรบัคคงเหลือ: **{format_number(gamepass_stock)}**\n💰 เรท: {gamepass_rate} (ปกติ) | {gamepass_rate_high} (>{gamepass_threshold} {ROBUX_EMOJI})", 
+            value=f"📦 โรบัคคงเหลือ: **{format_number(gamepass_stock)}**\n💰 เรท: {gamepass_rate} (ปกติ) | {gamepass_rate_high} (>{gamepass_threshold} Robux)", 
             inline=False
         )
         order_embed.set_footer(text="13bux")
@@ -2054,7 +2234,7 @@ async def payment_cmd(ctx):
         pass
         
 
-# ============ SIMPLE CALCULATOR COMMANDS (Public) ============
+# ============ CHANGE 1 & 2: SIMPLE CALCULATOR COMMANDS (No emoji, no wallet line) ============
 @bot.command()
 async def gp(ctx, *, expr):
     global gamepass_rate, gamepass_rate_high, gamepass_threshold
@@ -2066,12 +2246,10 @@ async def gp(ctx, *, expr):
         price = robux / rate
         price_int = round_price(price)
         
-        wallet_price = calculate_wallet_price(price_int)
-        
         if robux > gamepass_threshold:
-            await ctx.send(f"🎮 Gamepass {format_number(robux)} {ROBUX_EMOJI} = **{format_number(price_int)} บาท** (เรท {rate} - มากกว่า {gamepass_threshold} {ROBUX_EMOJI}) //โอนวอเล็ตบวกเพิ่ม 5% = {format_number(wallet_price)} บาท")
+            await ctx.send(f"🎮 Gamepass {format_number(robux)} Robux = **{format_number(price_int)} บาท** (เรท {rate} - มากกว่า {gamepass_threshold} Robux)")
         else:
-            await ctx.send(f"🎮 Gamepass {format_number(robux)} {ROBUX_EMOJI} = **{format_number(price_int)} บาท** (เรท {rate}) //โอนวอเล็ตบวกเพิ่ม 5% = {format_number(wallet_price)} บาท")
+            await ctx.send(f"🎮 Gamepass {format_number(robux)} Robux = **{format_number(price_int)} บาท** (เรท {rate})")
     except:
         await ctx.send("❌ กรุณากรอกตัวเลขให้ถูกต้อง เช่น 500 หรือ 100+200", delete_after=5)
 
@@ -2085,7 +2263,7 @@ async def gpb(ctx, *, expr):
         robux_normal = int(baht * gamepass_rate)
         robux_high = int(baht * gamepass_rate_high)
         
-        await ctx.send(f"🎮 {format_number(int(baht))} บาท = **{format_number(robux_normal)} {ROBUX_EMOJI}** (Gamepass เรท {gamepass_rate})\n หรือ = **{format_number(robux_high)} {ROBUX_EMOJI}** (เรท {gamepass_rate_high} สำหรับซื้อ >{gamepass_threshold} {ROBUX_EMOJI})\n//โอนวอเล็ตบวกเพิ่ม 5%")
+        await ctx.send(f"🎮 {format_number(int(baht))} บาท = **{format_number(robux_normal)} Robux** (Gamepass เรท {gamepass_rate})\n หรือ = **{format_number(robux_high)} Robux** (เรท {gamepass_rate_high} สำหรับซื้อ >{gamepass_threshold} Robux)")
     except:
         await ctx.send("❌ กรุณากรอกตัวเลขให้ถูกต้อง เช่น 500 หรือ 100+200", delete_after=5)
 
