@@ -215,7 +215,7 @@ def save_stock_values():
             "last_updated": get_thailand_time().isoformat()
         }
         save_json(stock_file, data)
-        print(f"✅ Stock values saved: stock={gamepass_stock}, rate={gamepass_rate}")
+        print(f"✅ Stock values saved: stock={gamepass_stock}, rate={gamepass_rate}, shop_open={shop_open}")
         return True
     except Exception as e:
         print(f"❌ Error saving stock: {e}")
@@ -231,7 +231,7 @@ def load_stock_values():
             gamepass_rate_high = data.get("gamepass_rate_high", 5)
             gamepass_threshold = data.get("gamepass_threshold", 676767)
             shop_open = data.get("shop_open", True)
-            print(f"✅ Stock values loaded: stock={gamepass_stock}, rate={gamepass_rate}")
+            print(f"✅ Stock values loaded: stock={gamepass_stock}, rate={gamepass_rate}, shop_open={shop_open}")
         else:
             save_stock_values()
     except Exception as e:
@@ -1552,6 +1552,7 @@ async def update_main_channel():
     try:
         channel = bot.get_channel(MAIN_CHANNEL_ID)
         if not channel:
+            print(f"❌ Main channel not found: {MAIN_CHANNEL_ID}")
             return
         
         if not shop_open:
@@ -1586,7 +1587,8 @@ async def update_main_channel():
                 await bot.main_channel_message.edit(embed=embed, view=view)
                 print("✅ Updated main channel message")
                 return
-            except:
+            except Exception as e:
+                print(f"⚠️ Failed to edit cached main message: {e}")
                 bot.main_channel_message = None
         
         async for msg in channel.history(limit=20):
@@ -1860,14 +1862,19 @@ async def open_cmd(ctx):
     except:
         pass
     
-    await bot.command_rate_limiter.acquire()
+    # Save immediately
     save_stock_values()
+    
+    # Force refresh the cached main message so it re-finds/re-sends if needed
+    bot.main_channel_message = None
+    
     await update_channel_name()
     await update_main_channel()
     
     embed = discord.Embed(title="✅ เปิดร้าน", description="ร้าน 13bux เปิดให้บริการ", color=0x00FF00)
     embed.set_footer(text=f"เวลา: {get_thailand_time().strftime('%d/%m/%y %H:%M')}")
     await ctx.send(embed=embed)
+    print(f"✅ Shop opened by {ctx.author.name}, shop_open={shop_open}")
 
 @bot.command(name="close")
 @admin_only()
@@ -1880,14 +1887,19 @@ async def close_cmd(ctx):
     except:
         pass
     
-    await bot.command_rate_limiter.acquire()
+    # Save immediately
     save_stock_values()
+    
+    # Force refresh the cached main message
+    bot.main_channel_message = None
+    
     await update_channel_name()
     await update_main_channel()
     
     embed = discord.Embed(title="🔴 ปิดร้าน", description="ร้าน 13bux ปิดให้บริการชั่วคราว", color=0xFF0000)
     embed.set_footer(text=f"เวลา: {get_thailand_time().strftime('%d/%m/%y %H:%M')}")
     await ctx.send(embed=embed)
+    print(f"✅ Shop closed by {ctx.author.name}, shop_open={shop_open}")
 
 # ============ RATE COMMAND ============
 @bot.command()
@@ -1980,8 +1992,7 @@ async def od(ctx, *, expr):
                     balance_message = f"\n\n💰 **{buyer.mention} เหลือ {new_balance:.2f} บาท**"
                 else:
                     balance_message = f"\n\n⚠️ **{buyer.mention} มีเงินบาทเหลือไม่พอ!** (มี {current_balance:.2f} บาท ต้องการ {price_int} บาท)"
-            elif current_balance == 0:
-                balance_message = f"\n\n💰 **{buyer.mention} ไม่มีเงินคงเหลือในระบบ**"
+            # NOTE: Removed the elif current_balance == 0 branch so no "no balance" message is shown
         
         if buyer:
             await add_buyer_role(buyer, ctx.guild)
@@ -1998,6 +2009,10 @@ async def od(ctx, *, expr):
         embed.add_field(name="📦 ประเภทสินค้า", value="Gamepass", inline=False)
         embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(robux)}", inline=True)
         embed.add_field(name="💰 ราคาตามเรท", value=f"{format_number(price_int)} บาท", inline=True)
+        
+        # Only add balance field if there's an actual balance message
+        if balance_message:
+            embed.add_field(name="💵 เงินคงเหลือ", value=balance_message, inline=False)
         
         embed.set_footer(text=f"รับออร์เดอร์แล้ว 🤗 • {get_thailand_time().strftime('%d/%m/%y, %H:%M')}")
         
@@ -2078,14 +2093,16 @@ async def odt(ctx, *, expr=None):
                     balance_message = f"\n\n💰 **{buyer.mention} เหลือ {new_balance:.2f} บาท**"
                 else:
                     balance_message = f"\n\n⚠️ **{buyer.mention} มีเงินบาทเหลือไม่พอ!** (มี {current_balance:.2f} บาท ต้องการ {price_int} บาท)"
-            elif current_balance == 0:
-                balance_message = f"\n\n💰 **{buyer.mention} ไม่มีเงินคงเหลือในระบบ**"
+            # NOTE: Removed the elif current_balance == 0 branch so no "no balance" message is shown
         
         embed = discord.Embed(title="🌸คำสั่งซื้อเติมโรแท้🌸", color=0x00FF99)
         embed.add_field(name="📦 ประเภทสินค้า", value="เติมโรแท้ (Robux แท้)", inline=False)
         embed.add_field(name="💎 จำนวน Robux", value=f"{format_number(robux)}", inline=True)
         embed.add_field(name="💰 ราคา", value=f"{format_number(price_int)} บาท", inline=True)
         
+        # Only add balance field if there's an actual balance message
+        if balance_message:
+            embed.add_field(name="💵 เงินคงเหลือ", value=balance_message, inline=False)
         
         embed.set_footer(text=f"รับออร์เดอร์แล้ว 🤗 • {get_thailand_time().strftime('%d/%m/%y, %H:%M')}")
         embed.set_thumbnail(url=THUMBNAIL_URL)
