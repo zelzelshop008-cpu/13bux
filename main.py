@@ -83,14 +83,6 @@ intents.members = True
 SUSHI_HEART_EMOJI = "💖"
 PINK_COLOR = 0xFF69B4
 
-WELCOME_MESSAGES = [
-    "ยินดีต้อนรับ {0} สู่เซิร์ฟเวอร์! 🌸",
-    "สวัสดี {0}! ยินดีต้อนรับนะคะ 💖",
-    "ยินดีต้อนรับ {0} เข้ามาเป็นส่วนหนึ่งของเรา! ✨",
-    "หวัดดี {0}! ขอให้สนุกนะคะ 🎉",
-    "ยินดีต้อนรับ {0}! มาซื้อของกับเราสิ 🛒",
-]
-
 # Global variables
 gamepass_rate = 5
 gamepass_rate_high = 5
@@ -603,7 +595,7 @@ class TopupMainMenuView(View):
                 description="กรุณาเลือกจำนวนโรบัคที่ต้องการ",
                 color=0x00FF99
             )
-            embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="80R (35฿) • 160R (66฿) • 240R (99฿) • 500R (160฿)", inline=False)
+            embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="80R • 160R • 240R • 500R", inline=False)
             embed.set_footer(text="13bux • แพ็กเริ่มต้น")
             embed.set_thumbnail(url=THUMBNAIL_URL)
             await i.response.edit_message(embed=embed, view=TopupStarterView(self))
@@ -614,7 +606,7 @@ class TopupMainMenuView(View):
                 description="กรุณาเลือกจำนวนโรบัคที่ต้องการ",
                 color=0x00FF99
             )
-            embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="1000R (300฿) • 1500R (460฿) • 2000R (600฿) • 2500R (750฿)", inline=False)
+            embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="1000R • 1500R • 2000R • 2500R", inline=False)
             embed.set_footer(text="13bux • แพ็กยอดนิยม")
             embed.set_thumbnail(url=THUMBNAIL_URL)
             await i.response.edit_message(embed=embed, view=TopupPopularView(self))
@@ -625,7 +617,7 @@ class TopupMainMenuView(View):
                 description="กรุณาเลือกจำนวนโรบัคที่ต้องการ",
                 color=0x00FF99
             )
-            embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="3500R (1050฿) • 5000R (1490฿) • 10000R (2900฿) • 15000R (4350฿) • 22500R (5789฿)", inline=False)
+            embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="3500R • 5000R • 10000R • 15000R • 22500R", inline=False)
             embed.set_footer(text="13bux • แพ็กใหญ่")
             embed.set_thumbnail(url=THUMBNAIL_URL)
             await i.response.edit_message(embed=embed, view=TopupBigView(self))
@@ -646,9 +638,9 @@ def _build_topup_main_menu_embed():
         description="กรุณาเลือกแพ็กที่ต้องการด้านล่าง",
         color=0x00FF99
     )
-    embed.add_field(name="🌱 แพ็กเริ่มต้น", value="80R (35฿) • 160R (66฿) • 240R (99฿) • 500R (160฿)", inline=False)
-    embed.add_field(name="⭐ แพ็กยอดนิยม", value="1000R (300฿) • 1500R (460฿) • 2000R (600฿) • 2500R (750฿)", inline=False)
-    embed.add_field(name="💎 แพ็กใหญ่", value="3500R (1050฿) • 5000R (1490฿) • 10000R (2900฿) • 15000R (4350฿) • 22500R (5789฿)", inline=False)
+    embed.add_field(name="🌱 แพ็กเริ่มต้น", value="80R • 160R • 240R • 500R", inline=False)
+    embed.add_field(name="⭐ แพ็กยอดนิยม", value="1000R • 1500R • 2000R • 2500R", inline=False)
+    embed.add_field(name="💎 แพ็กใหญ่", value="3500R • 5000R • 10000R • 15000R • 22500R", inline=False)
     embed.set_footer(text="13bux • เติมโรแท้")
     embed.set_thumbnail(url=THUMBNAIL_URL)
     return embed
@@ -1159,17 +1151,17 @@ async def handle_open_topup_ticket(interaction):
         )
         menu_embed.add_field(
             name="🌱 แพ็กเริ่มต้น", 
-            value="80R (35฿) • 160R (66฿) • 240R (99฿) • 500R (160฿)", 
+            value="80R • 160R • 240R • 500R", 
             inline=False
         )
         menu_embed.add_field(
             name="⭐ แพ็กยอดนิยม", 
-            value="1000R (300฿) • 1500R (460฿) • 2000R (600฿) • 2500R (750฿)", 
+            value="1000R • 1500R • 2000R • 2500R", 
             inline=False
         )
         menu_embed.add_field(
             name="💎 แพ็กใหญ่", 
-            value="3500R (1050฿) • 5000R (1490฿) • 10000R (2900฿) • 15000R (4350฿) • 22500R (5789฿)", 
+            value="3500R • 5000R • 10000R • 15000R • 22500R", 
             inline=False
         )
         menu_embed.set_footer(text="13bux • เลือกแพ็กเพื่อดูรายละเอียด")
@@ -1294,66 +1286,6 @@ async def handle_open_issue_ticket(interaction):
             pass
 
 
-class GamepassTicketModal(Modal, title="📋 แบบฟอร์มกดเกมพาส"):
-    map_name = TextInput(
-        label="🗺 ชื่อแมพที่จะกด?", 
-        placeholder="ชื่อแมพ เช่น Sushi Fruits", 
-        required=True
-    )
-    gamepass_name = TextInput(
-        label="💸 ชื่อเกมพาส?", 
-        placeholder="ชื่อเกมพาส เช่น VIP + x2 เงิน", 
-        required=True
-    )
-    robux_amount = TextInput(
-        label="🎟 ราคาของเกมพาสเท่าไหร่บ้าง?", 
-        placeholder="เช่น 300 / 100+100+100 / 100x3", 
-        required=True
-    )
-    
-    async def on_submit(self, i):
-        try:
-            if is_user_always_anonymous(i.user):
-                ticket_anonymous_mode[str(i.channel.id)] = True
-                ticket_customer_data[str(i.channel.id)] = "ไม่ระบุตัวตน"
-                save_json(ticket_customer_data_file, ticket_customer_data)
-            else:
-                ticket_anonymous_mode[str(i.channel.id)] = False
-            
-            expr = self.robux_amount.value.lower().replace("x", "*").replace("÷", "/").replace(" ", "")
-            if not re.match(r"^[\d\s\+\-\*\/\(\)]+$", expr):
-                await i.response.send_message(
-                    "❌ กรุณาใส่เฉพาะตัวเลข และเครื่องหมาย + - * / x ÷ ()", 
-                    ephemeral=True
-                )
-                return
-            
-            robux = int(eval(expr))
-            rate = get_gamepass_rate(robux)
-            price = robux / rate
-            price_int = round_price(price)
-            
-            embed = discord.Embed(title="📨 รายละเอียดการสั่งซื้อ", color=0x00FF99)
-            embed.add_field(name="🗺️ ชื่อแมพ", value=self.map_name.value, inline=False)
-            embed.add_field(name="🎟 เกมพาส", value=self.gamepass_name.value, inline=False)
-            embed.add_field(name="💸 ราคา Robux", value=f"{format_number(robux)}", inline=True)
-            embed.add_field(name="💰 ราคา", value=f"{format_number(price_int)} บาท", inline=True)
-            embed.set_footer(text="แอดมินจะตอบกลับเร็วๆนี้")
-            
-            view = View(timeout=300)
-            cancel_btn = Button(label="❌ ยกเลิกสินค้า", style=discord.ButtonStyle.danger)
-            
-            async def cancel_cb(interaction):
-                await interaction.response.send_message("❌ คำสั่งซื้อถูกยกเลิก")
-                await interaction.message.delete()
-            
-            cancel_btn.callback = cancel_cb
-            view.add_item(cancel_btn)
-            
-            await i.response.send_message(embed=embed, view=view)
-            
-        except Exception as e:
-            await i.response.send_message(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
 
 class DeliveryView(View):
     def __init__(self, channel, product_type, robux_amount, price, buyer, is_reorder=False):
@@ -1957,64 +1889,6 @@ async def close_cmd(ctx):
     embed.set_footer(text=f"เวลา: {get_thailand_time().strftime('%d/%m/%y %H:%M')}")
     await ctx.send(embed=embed)
 
-@bot.command(name="robuxtoday")
-@admin_only()
-async def robuxtoday_cmd(ctx):
-    embed = discord.Embed(
-        title="📊 ยอดขายโรบัค",
-        description=f"**{format_number(daily_robux_sold)}** Robux",
-        color=0x00FF99
-    )
-    embed.set_footer(text=f"ข้อมูล ณ วันที่ {get_thailand_time().strftime('%d/%m/%Y')}")
-    await ctx.send(embed=embed)
-
-@bot.command(name="resetrobuxtoday")
-@admin_only()
-async def reset_robuxtoday_cmd(ctx):
-    reset_daily_robux()
-    
-    embed = discord.Embed(
-        title="🔄 รีเซ็ตยอดขายโรบัคเรียบร้อย",
-        description=f"ยอดขายโรบัคถูกรีเซ็ตเป็น **0** Robux",
-        color=0x00FF00
-    )
-    embed.set_footer(text=f"รีเซ็ตโดย {ctx.author.name} • {get_thailand_time().strftime('%d/%m/%Y %H:%M:%S')}")
-    await ctx.send(embed=embed)
-    print(f"✅ Daily robux sales reset to 0 by {ctx.author.name}")
-
-@bot.command()
-@admin_only()
-async def stock(ctx, stock_type=None, amount=None):
-    global gamepass_stock
-    
-    try:
-        await ctx.message.delete()
-    except:
-        pass
-    
-    if not stock_type:
-        embed = discord.Embed(title="📊 สต๊อกสินค้า", color=0x00FF99)
-        embed.add_field(name="🎮 Gamepass Stock", value=f"**{format_number(gamepass_stock)}**", inline=True)
-        await ctx.send(embed=embed)
-        
-    elif stock_type.lower() in ["gp", "gamepass", "เกมพาส"]:
-        if amount is None:
-            embed = discord.Embed(title="🎮 Gamepass Stock", description=f"**{format_number(gamepass_stock)}**", color=0x00FF99)
-            await ctx.send(embed=embed)
-        else:
-            try:
-                gamepass_stock = int(amount.replace(",", ""))
-                save_stock_values()
-                embed = discord.Embed(title="✅ ตั้งค่า Stock เรียบร้อย", description=f"ตั้งค่า สต๊อกเกมพาส เป็น **{format_number(gamepass_stock)}** เรียบร้อยแล้ว", color=0x00FF00)
-                await ctx.send(embed=embed)
-                await update_main_channel()
-            except ValueError:
-                await ctx.send("❌ กรุณากรอกตัวเลขให้ถูกต้อง", delete_after=5)
-    else:
-        embed = discord.Embed(title="❌ การใช้งานไม่ถูกต้อง", description="**การใช้งาน:**\n`!stock` - เช็ค stock ทั้งหมด\n`!stock gp <จำนวน>` - ตั้งค่า Gamepass stock", color=0xFF0000)
-        await ctx.send(embed=embed)
-
-
 # ============ RATE COMMAND ============
 @bot.command()
 @admin_only()
@@ -2125,9 +1999,6 @@ async def od(ctx, *, expr):
         embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(robux)}", inline=True)
         embed.add_field(name="💰 ราคาตามเรท", value=f"{format_number(price_int)} บาท", inline=True)
         
-        if balance_message:
-            embed.add_field(name="💵 เงินคงเหลือ", value=balance_message, inline=False)
-        
         embed.set_footer(text=f"รับออร์เดอร์แล้ว 🤗 • {get_thailand_time().strftime('%d/%m/%y, %H:%M')}")
         
         await ctx.send(embed=embed, view=DeliveryView(ctx.channel, "Gamepass", robux, price, buyer, is_reorder=False))
@@ -2215,8 +2086,6 @@ async def odt(ctx, *, expr=None):
         embed.add_field(name="💎 จำนวน Robux", value=f"{format_number(robux)}", inline=True)
         embed.add_field(name="💰 ราคา", value=f"{format_number(price_int)} บาท", inline=True)
         
-        if balance_message:
-            embed.add_field(name="💵 เงินคงเหลือ", value=balance_message, inline=False)
         
         embed.set_footer(text=f"รับออร์เดอร์แล้ว 🤗 • {get_thailand_time().strftime('%d/%m/%y, %H:%M')}")
         embed.set_thumbnail(url=THUMBNAIL_URL)
