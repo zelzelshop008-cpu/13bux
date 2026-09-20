@@ -80,7 +80,6 @@ intents.message_content = True
 intents.members = True
 
 # ============ CONSTANTS ============
-# CHANGE 1: Removed ROBUX_EMOJI - now using plain text "Robux"
 SUSHI_HEART_EMOJI = "💖"
 
 WELCOME_MESSAGES = [
@@ -115,13 +114,17 @@ ANONYMOUS_USER_ROLE_ID = 1486352633290821673
 ADMIN_ROLE_ID = 1535667589433397348
 NOTES_BUTTON_CHANNEL_ID = 1485277532088696995
 NOTES_LOG_CHANNEL_ID = 1504349990460461066
-# CHANGE 5: New category for เติมโรแท้ tickets
-ROBUX_TOPUP_CATEGORY_ID = 1475342278976606228  # Change this to your preferred category ID
 
-# CHANGE 3: Updated thumbnail and big image URLs
+# NEW: Category IDs for each button type
+GAMEPASS_TICKET_CATEGORY_ID = 1551167566389452840
+TOPUP_TICKET_CATEGORY_ID = 1551167716587606127
+ISSUE_TICKET_CATEGORY_ID = 1551168063171199056
+
+# Thumbnail URL
 THUMBNAIL_URL = "https://media.discordapp.net/attachments/1460628263092359199/1535925883989135381/cachedMedia.png?ex=6ab04032&is=6aaeeeb2&hm=739c2b4d506db1adca5c6188257f08e376e992237abb8ca888e69faadc3d4678&=&format=webp&quality=lossless&width=1299&height=1299"
 
-MAIN_IMAGE_URL = "https://media.discordapp.net/attachments/1535629996910182410/1542419322209697832/58082bd2-71f2-4132-a16d-64154fc001e5.png?ex=6ab0cd6f&is=6aaf7bef&hm=f22fb4eb2d2d2ed351bb83a23d1393c4891dc1491c8453e990e72cb2e0f15e5c&=&format=webp&quality=lossless&width=1623&height=1299"
+# CHANGE 2: Updated big image URL
+MAIN_IMAGE_URL = "https://media.discordapp.net/attachments/1486683482183958568/1551167778726350848/content.png?ex=6ab0fd11&is=6aafab91&hm=1cd17fb232371815ed3ef88d4510238881096e94d231f7ef2ecca392fd8f5852&=&format=webp&quality=lossless&width=1745&height=1163"
 
 # File paths
 user_data_file = os.path.join(DATA_DIR, "user_data.json")
@@ -563,7 +566,38 @@ def evaluate_expression(expr: str) -> float:
         raise ValueError(f"Invalid expression: {str(e)}")
 
 
-# ============ CHANGE 5: ROBUX TOPUP PACKAGE VIEW ============
+# ============ ISSUE TICKET MODAL ============
+class IssueReportModal(Modal, title="⚠️ แจ้งปัญหา"):
+    issue_description = TextInput(
+        label="อธิบายปัญหาที่พบ",
+        placeholder="กรุณาอธิบายปัญหาที่คุณพบ...",
+        style=discord.TextStyle.paragraph,
+        required=True,
+        max_length=1000
+    )
+    
+    async def on_submit(self, i):
+        try:
+            admin_role = i.guild.get_role(ADMIN_ROLE_ID)
+            admin_mention = admin_role.mention if admin_role else f"<@&{ADMIN_ROLE_ID}>"
+            
+            embed = discord.Embed(
+                title="⚠️ รายงานปัญหาใหม่",
+                description=self.issue_description.value,
+                color=0xFFA500
+            )
+            embed.add_field(name="👤 ผู้แจ้ง", value=i.user.mention, inline=False)
+            embed.set_footer(text=f"แจ้งเมื่อ {get_thailand_time().strftime('%d/%m/%y %H:%M')}")
+            
+            await i.response.send_message(
+                f"✅ รับเรื่องแล้วค่ะ รอแอดมินตอบกลับนะคะ {admin_mention}",
+                embed=embed
+            )
+        except Exception as e:
+            await i.response.send_message(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
+
+
+# ============ ROBUX TOPUP PACKAGE VIEW ============
 class RobuxTopupPackageView(View):
     """View with 3 buttons for choosing robux topup packages"""
     def __init__(self):
@@ -641,7 +675,6 @@ class GamepassCalculatorModal(Modal, title="🌸 คำนวณเกมพา�
             price = robux / rate
             price_int = round_price(price)
             
-            # CHANGE 1: Removed ROBUX_EMOJI, using plain "Robux"
             if robux > gamepass_threshold:
                 rate_text = f"เรท {rate} (มากกว่า {gamepass_threshold} Robux)"
             else:
@@ -680,7 +713,6 @@ class GamepassBahtCalculatorModal(Modal, title="🌸 คำนวณเงิน
             robux_normal = int(baht * gamepass_rate)
             robux_high = int(baht * gamepass_rate_high)
             
-            # CHANGE 1: Removed ROBUX_EMOJI
             embed = discord.Embed(
                 title=f"🎮 {format_number(int(baht))} บาท",
                 color=0xFFA500
@@ -697,7 +729,7 @@ class GamepassBahtCalculatorModal(Modal, title="🌸 คำนวณเงิน
             await interaction.response.send_message(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
 
 
-# ============ CHANGE 4: EMBED SHOP VIEW WITH NEW BUTTONS ============
+# ============ EMBED SHOP VIEW ============
 class EmbedShopView(View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -709,11 +741,13 @@ class EmbedShopView(View):
         gamepass_disabled = (not shop_open) or (gamepass_stock <= 0)
         gamepass_style = discord.ButtonStyle.danger if gamepass_disabled else discord.ButtonStyle.success
         
-        stock_display = "🔴" if gamepass_stock <= 0 else "🟢"
-        if not shop_open:
-            stock_display = "🔴"
+        gamepass_btn = Button(
+            label="กดเกมพาส",
+            style=gamepass_style,
+            emoji="🎮",
+            disabled=gamepass_disabled
+        )
         
-        # CHANGE 4: Green button "เติมโรแท้"
         topup_btn = Button(
             label="เติมโรแท้",
             style=discord.ButtonStyle.success,
@@ -721,18 +755,10 @@ class EmbedShopView(View):
             disabled=not shop_open
         )
         
-        # CHANGE 4: Grey button "แจ้งปัญหา"
         issue_btn = Button(
             label="แจ้งปัญหา",
             style=discord.ButtonStyle.secondary,
             emoji="⚠️"
-        )
-        
-        gamepass_btn = Button(
-            label=f"กดเกมพาส (Stock: {format_number(gamepass_stock)}) {stock_display}", 
-            style=gamepass_style, 
-            emoji="🎮", 
-            disabled=gamepass_disabled
         )
         
         async def gamepass_cb(i):
@@ -742,7 +768,7 @@ class EmbedShopView(View):
             if gamepass_stock <= 0:
                 await i.response.send_message("❌ เกมพาสสต็อกหมด กรุณารอเติมสต็อก", ephemeral=True)
                 return
-            await handle_open_ticket(i, "🌸Sushi Gamepass 🌸", "gamepass")
+            await handle_open_gamepass_ticket(i)
         
         async def topup_cb(i):
             if not shop_open:
@@ -751,10 +777,7 @@ class EmbedShopView(View):
             await handle_open_topup_ticket(i)
         
         async def issue_cb(i):
-            await i.response.send_message(
-                "⚠️ หากพบปัญหากรุณาติดต่อแอดมินโดยตรง หรือแจ้งในตั๋วของคุณ",
-                ephemeral=True
-            )
+            await handle_open_issue_ticket(i)
         
         gamepass_btn.callback = gamepass_cb
         topup_btn.callback = topup_cb
@@ -765,9 +788,152 @@ class EmbedShopView(View):
         self.add_item(issue_btn)
 
 
-# ============ CHANGE 5: TOPUP TICKET HANDLER ============
+# ============ GAMEPASS TICKET HANDLER (Category 1551167566389452840) ============
+async def handle_open_gamepass_ticket(interaction):
+    """Open a gamepass ticket in category GAMEPASS_TICKET_CATEGORY_ID"""
+    global gamepass_stock
+    
+    try:
+        if gamepass_stock <= 0:
+            await interaction.response.send_message("❌ โรบัคหมดชั่วคราว", ephemeral=True)
+            return
+        
+        if not shop_open:
+            await interaction.response.send_message("❌ ปิดชั่วคราว กรุณารอร้านเปิด", ephemeral=True)
+            return
+        
+        existing = discord.utils.get(
+            interaction.guild.text_channels, 
+            name=f"ticket-{interaction.user.name}-{interaction.user.id}".lower()
+        )
+        
+        if existing:
+            view = View()
+            view.add_item(discord.ui.Button(
+                label="📩 ไปที่ตั๋ว", 
+                url=f"https://discord.com/channels/{existing.guild.id}/{existing.id}", 
+                style=discord.ButtonStyle.link
+            ))
+            await interaction.response.send_message(
+                "📌 คุณมีตั๋วเปิดอยู่แล้ว กดปุ่มด้านล่างเพื่อไปที่ตั๋ว", 
+                view=view, 
+                ephemeral=True
+            )
+            return
+        
+        overwrites = {
+            interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True),
+            interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        }
+        
+        admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        
+        category = discord.utils.get(interaction.guild.categories, id=GAMEPASS_TICKET_CATEGORY_ID)
+        if not category:
+            await interaction.response.send_message("❌ ไม่พบหมวดหมู่สำหรับตั๋วเกมพาส", ephemeral=True)
+            return
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        channel = await interaction.guild.create_text_channel(
+            name=f"ticket-{interaction.user.name}-{interaction.user.id}".lower(),
+            overwrites=overwrites,
+            category=category
+        )
+        
+        ticket_activity[channel.id] = {
+            'last_activity': get_thailand_time(), 
+            'ty_used': False,
+            'buyer_id': interaction.user.id
+        }
+        
+        ticket_buyer_data[str(channel.id)] = {
+            "user_id": interaction.user.id,
+            "user_name": interaction.user.name,
+            "user_display": interaction.user.display_name,
+            "created_at": get_thailand_time().isoformat()
+        }
+        save_json(ticket_buyer_data_file, ticket_buyer_data)
+        
+        if is_user_always_anonymous(interaction.user):
+            ticket_anonymous_mode[str(channel.id)] = True
+            ticket_customer_data[str(channel.id)] = "ไม่ระบุตัวตน"
+        else:
+            ticket_customer_data[str(channel.id)] = interaction.user.name
+        
+        save_json(ticket_customer_data_file, ticket_customer_data)
+        
+        async with bot.stock_lock:
+            gamepass_stock -= 1
+        
+        save_stock_values()
+        await update_main_channel()
+        
+        view = View()
+        view.add_item(discord.ui.Button(
+            label="📩 ไปที่ตั๋ว", 
+            url=f"https://discord.com/channels/{channel.guild.id}/{channel.id}", 
+            style=discord.ButtonStyle.link
+        ))
+        await interaction.followup.send("📩 เปิดตั๋วเรียบร้อย", view=view, ephemeral=True)
+        
+        user_balance = get_user_robux_balance(interaction.user.id)
+        balance_display = f"{user_balance:.2f}" if user_balance > 0 else "0"
+        
+        embed = discord.Embed(
+            title="🌸13bux🌸", 
+            color=0x00FF99
+        )
+        embed.add_field(name="👤 ผู้ซื้อ", value=interaction.user.mention, inline=False)
+        embed.add_field(name="💵 เงินคงเหลือ", value=f"**{balance_display}** บาท", inline=False)
+        embed.add_field(
+            name="🎮 บริการกดเกมพาส", 
+            value=f"📦 โรบัคคงเหลือ: **{format_number(gamepass_stock)}**\n💰 เรท: {gamepass_rate} (ปกติ) | {gamepass_rate_high} (>{gamepass_threshold} Robux)", 
+            inline=False
+        )
+        embed.set_footer(text="13bux")
+        embed.set_thumbnail(url=THUMBNAIL_URL)
+        
+        ticket_view = View(timeout=None)
+        form_btn = Button(label="📝 กรอกแบบฟอร์มเกมพาส", style=discord.ButtonStyle.primary, emoji="📝")
+        
+        async def form_callback(i):
+            if i.channel.id == channel.id:
+                modal = GamepassTicketModal()
+                await i.response.send_modal(modal)
+            else:
+                await i.response.send_message("❌ คุณไม่สามารถใช้ปุ่มนี้ในช่องอื่นได้", ephemeral=True)
+        
+        form_btn.callback = form_callback
+        ticket_view.add_item(form_btn)
+        
+        await channel.send(embed=embed, view=ticket_view)
+        print(f"✅ ส่ง embed ต้อนรับในตั๋ว {channel.name} เรียบร้อย")
+
+        if admin_role:
+            admin_mention = admin_role.mention
+            await channel.send(content=f"{admin_role.mention} มีตั๋วใหม่!", delete_after=10)
+        else:
+            admin_mention = ""
+
+        await channel.send(f"# สนใจซื้ออะไรแจ้งแอดมินได้เลยค่ะ {SUSHI_HEART_EMOJI} {admin_mention}")
+        print(f"✅ ส่งข้อความต้อนรับในตั๋ว {channel.name}")
+        
+    except Exception as e:
+        print(f"❌ Error opening gamepass ticket: {e}")
+        traceback.print_exc()
+        try:
+            await interaction.followup.send(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
+        except:
+            pass
+
+
+# ============ TOPUP TICKET HANDLER (Category 1551167716587606127) ============
 async def handle_open_topup_ticket(interaction):
-    """Open a ticket for robux topup with 3 package choices"""
+    """Open a robux topup ticket in category TOPUP_TICKET_CATEGORY_ID"""
     try:
         if not shop_open:
             await interaction.response.send_message("❌ ปิดชั่วคราว กรุณารอร้านเปิด", ephemeral=True)
@@ -802,12 +968,7 @@ async def handle_open_topup_ticket(interaction):
         if admin_role:
             overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
         
-        category = None
-        if ROBUX_TOPUP_CATEGORY_ID:
-            category = discord.utils.get(interaction.guild.categories, id=ROBUX_TOPUP_CATEGORY_ID)
-            if not category:
-                category = discord.utils.get(interaction.guild.categories, name="🌸Sushi Gamepass 🌸")
-        
+        category = discord.utils.get(interaction.guild.categories, id=TOPUP_TICKET_CATEGORY_ID)
         if not category:
             await interaction.response.send_message("❌ ไม่พบหมวดหมู่สำหรับตั๋วเติมโรแท้", ephemeral=True)
             return
@@ -842,7 +1003,6 @@ async def handle_open_topup_ticket(interaction):
         
         save_json(ticket_customer_data_file, ticket_customer_data)
         
-        # Send link to user
         view = View()
         view.add_item(discord.ui.Button(
             label="📩 ไปที่ตั๋ว", 
@@ -851,7 +1011,6 @@ async def handle_open_topup_ticket(interaction):
         ))
         await interaction.followup.send("📩 เปิดตั๋วเติมโรแท้เรียบร้อย", view=view, ephemeral=True)
         
-        # Welcome embed in ticket
         user_balance = get_user_robux_balance(interaction.user.id)
         balance_display = f"{user_balance:.2f}" if user_balance > 0 else "0"
         
@@ -879,6 +1038,121 @@ async def handle_open_topup_ticket(interaction):
         
     except Exception as e:
         print(f"❌ Error opening topup ticket: {e}")
+        traceback.print_exc()
+        try:
+            await interaction.followup.send(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
+        except:
+            pass
+
+
+# ============ ISSUE TICKET HANDLER (Category 1551168063171199056) ============
+async def handle_open_issue_ticket(interaction):
+    """Open an issue report ticket in category ISSUE_TICKET_CATEGORY_ID"""
+    try:
+        existing = discord.utils.get(
+            interaction.guild.text_channels, 
+            name=f"issue-{interaction.user.name}-{interaction.user.id}".lower()
+        )
+        
+        if existing:
+            view = View()
+            view.add_item(discord.ui.Button(
+                label="📩 ไปที่ตั๋ว", 
+                url=f"https://discord.com/channels/{existing.guild.id}/{existing.id}", 
+                style=discord.ButtonStyle.link
+            ))
+            await interaction.response.send_message(
+                "📌 คุณมีตั๋วแจ้งปัญหาเปิดอยู่แล้ว กดปุ่มด้านล่างเพื่อไปที่ตั๋ว", 
+                view=view, 
+                ephemeral=True
+            )
+            return
+        
+        overwrites = {
+            interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True),
+            interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        }
+        
+        admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        
+        category = discord.utils.get(interaction.guild.categories, id=ISSUE_TICKET_CATEGORY_ID)
+        if not category:
+            await interaction.response.send_message("❌ ไม่พบหมวดหมู่สำหรับตั๋วแจ้งปัญหา", ephemeral=True)
+            return
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        channel = await interaction.guild.create_text_channel(
+            name=f"issue-{interaction.user.name}-{interaction.user.id}".lower(),
+            overwrites=overwrites,
+            category=category
+        )
+        
+        ticket_activity[channel.id] = {
+            'last_activity': get_thailand_time(), 
+            'ty_used': False,
+            'buyer_id': interaction.user.id
+        }
+        
+        ticket_buyer_data[str(channel.id)] = {
+            "user_id": interaction.user.id,
+            "user_name": interaction.user.name,
+            "user_display": interaction.user.display_name,
+            "created_at": get_thailand_time().isoformat()
+        }
+        save_json(ticket_buyer_data_file, ticket_buyer_data)
+        
+        if is_user_always_anonymous(interaction.user):
+            ticket_anonymous_mode[str(channel.id)] = True
+            ticket_customer_data[str(channel.id)] = "ไม่ระบุตัวตน"
+        else:
+            ticket_customer_data[str(channel.id)] = interaction.user.name
+        
+        save_json(ticket_customer_data_file, ticket_customer_data)
+        
+        view = View()
+        view.add_item(discord.ui.Button(
+            label="📩 ไปที่ตั๋ว", 
+            url=f"https://discord.com/channels/{channel.guild.id}/{channel.id}", 
+            style=discord.ButtonStyle.link
+        ))
+        await interaction.followup.send("📩 เปิดตั๋วแจ้งปัญหาเรียบร้อย", view=view, ephemeral=True)
+        
+        embed = discord.Embed(
+            title="⚠️ แจ้งปัญหา", 
+            description="กรุณากรอกรายละเอียดปัญหาที่คุณพบโดยกดปุ่มด้านล่าง",
+            color=0xFFA500
+        )
+        embed.add_field(name="👤 ผู้แจ้ง", value=interaction.user.mention, inline=False)
+        embed.set_footer(text="13bux • แจ้งปัญหา")
+        embed.set_thumbnail(url=THUMBNAIL_URL)
+        
+        ticket_view = View(timeout=None)
+        report_btn = Button(label="📝 กรอกรายละเอียดปัญหา", style=discord.ButtonStyle.primary, emoji="📝")
+        
+        async def report_callback(i):
+            if i.channel.id == channel.id:
+                modal = IssueReportModal()
+                await i.response.send_modal(modal)
+            else:
+                await i.response.send_message("❌ คุณไม่สามารถใช้ปุ่มนี้ในช่องอื่นได้", ephemeral=True)
+        
+        report_btn.callback = report_callback
+        ticket_view.add_item(report_btn)
+        
+        await channel.send(embed=embed, view=ticket_view)
+        print(f"✅ ส่ง embed แจ้งปัญหาในตั๋ว {channel.name}")
+
+        if admin_role:
+            await channel.send(content=f"{admin_role.mention} มีตั๋วแจ้งปัญหาใหม่!", delete_after=10)
+        
+        await channel.send(f"# กรุณากรอกรายละเอียดปัญหาด้านบนได้เลยค่ะ {SUSHI_HEART_EMOJI}")
+        
+    except Exception as e:
+        print(f"❌ Error opening issue ticket: {e}")
         traceback.print_exc()
         try:
             await interaction.followup.send(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
@@ -1214,38 +1488,36 @@ async def update_channel_name():
     except Exception as e:
         print(f"❌ Error updating channel name: {e}")
 
-# ============ CHANGE 3: UPDATED MAIN CHANNEL WITH NEW IMAGES ============
+# ============ UPDATED MAIN CHANNEL (Pink + New Text) ============
 async def update_main_channel():
     try:
         channel = bot.get_channel(MAIN_CHANNEL_ID)
         if not channel:
             return
         
+        # Pink color for all statuses
+        PINK_COLOR = 0xFF69B4
+        
         if not shop_open:
             status_text = "🌸13bux🌸 ปิดให้บริการ"
-            color = 0xFF0000
+            color = PINK_COLOR
         elif shop_open and gamepass_stock > 0:
             status_text = "🌸13bux🌸 เปิดให้บริการ"
-            color = 0x00FF00
+            color = PINK_COLOR
         else:
             status_text = "🌸13bux🌸 ปิดให้บริการ (สินค้าหมด)"
-            color = 0xFF0000
+            color = PINK_COLOR
         
         embed = discord.Embed(title=status_text, color=color)
         
-        if not shop_open:
-            gamepass_status = "🔴"
-        else:
-            gamepass_status = "🟢" if gamepass_stock > 0 else "🔴"
-        
-        gamepass_label = f"🎮 กดเกมพาส | 📦 Stock: {format_number(gamepass_stock)} {gamepass_status}"
+        # Single field: rate in the label, stock in the value
+        gamepass_label = f"🎮 กดเกมพาสเรท ({gamepass_rate})"
         embed.add_field(
             name=gamepass_label,
-            value=f"```เรท: {gamepass_rate}```",
+            value=f"📦 Stock: {format_number(gamepass_stock)}",
             inline=False
         )
         
-        # CHANGE 3: New thumbnail and image URLs
         embed.set_thumbnail(url=THUMBNAIL_URL)
         embed.set_image(url=MAIN_IMAGE_URL)
         embed.set_footer(
@@ -1280,158 +1552,8 @@ async def update_main_channel():
         
 
 async def handle_open_ticket(interaction, category_name, stock_type):
-    global gamepass_stock
-    
-    try:
-        if stock_type == "gamepass" and gamepass_stock <= 0:
-            await interaction.response.send_message("❌ โรบัคหมดชั่วคราว", ephemeral=True)
-            return
-        
-        if not shop_open:
-            await interaction.response.send_message("❌ ปิดชั่วคราว กรุณารอร้านเปิด", ephemeral=True)
-            return
-        
-        existing = discord.utils.get(
-            interaction.guild.text_channels, 
-            name=f"ticket-{interaction.user.name}-{interaction.user.id}".lower()
-        )
-        
-        if existing:
-            view = View()
-            view.add_item(discord.ui.Button(
-                label="📩 ไปที่ตั๋ว", 
-                url=f"https://discord.com/channels/{existing.guild.id}/{existing.id}", 
-                style=discord.ButtonStyle.link
-            ))
-            await interaction.response.send_message(
-                "📌 คุณมีตั๋วเปิดอยู่แล้ว กดปุ่มด้านล่างเพื่อไปที่ตั๋ว", 
-                view=view, 
-                ephemeral=True
-            )
-            return
-        
-        overwrites = {
-            interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True),
-            interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-        }
-        
-        admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
-        if admin_role:
-            overwrites[admin_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
-        
-        category = None
-        if stock_type == "gamepass":
-            category = discord.utils.get(interaction.guild.categories, id=SUSHI_GAMEPASS_CATEGORY_ID)
-            if not category:
-                category = discord.utils.get(interaction.guild.categories, name=category_name)
-        
-        if not category:
-            await interaction.response.send_message(f"❌ ไม่พบหมวดหมู่ {category_name}", ephemeral=True)
-            return
-        
-        await interaction.response.defer(ephemeral=True)
-        
-        channel = await interaction.guild.create_text_channel(
-            name=f"ticket-{interaction.user.name}-{interaction.user.id}".lower(),
-            overwrites=overwrites,
-            category=category
-        )
-        
-        ticket_activity[channel.id] = {
-            'last_activity': get_thailand_time(), 
-            'ty_used': False,
-            'buyer_id': interaction.user.id
-        }
-        
-        ticket_buyer_data[str(channel.id)] = {
-            "user_id": interaction.user.id,
-            "user_name": interaction.user.name,
-            "user_display": interaction.user.display_name,
-            "created_at": get_thailand_time().isoformat()
-        }
-        save_json(ticket_buyer_data_file, ticket_buyer_data)
-        
-        if is_user_always_anonymous(interaction.user):
-            ticket_anonymous_mode[str(channel.id)] = True
-            ticket_customer_data[str(channel.id)] = "ไม่ระบุตัวตน"
-        else:
-            ticket_customer_data[str(channel.id)] = interaction.user.name
-        
-        save_json(ticket_customer_data_file, ticket_customer_data)
-        
-        if stock_type == "gamepass":
-            async with bot.stock_lock:
-                gamepass_stock -= 1
-        
-        save_stock_values()
-        
-        await update_main_channel()
-        
-        view = View()
-        view.add_item(discord.ui.Button(
-            label="📩 ไปที่ตั๋ว", 
-            url=f"https://discord.com/channels/{channel.guild.id}/{channel.id}", 
-            style=discord.ButtonStyle.link
-        ))
-        await interaction.followup.send("📩 เปิดตั๋วเรียบร้อย", view=view, ephemeral=True)
-        
-        user_balance = get_user_robux_balance(interaction.user.id)
-        balance_display = f"{user_balance:.2f}" if user_balance > 0 else "0"
-        
-        embed = discord.Embed(
-            title="🌸13bux🌸", 
-            color=0x00FF99
-        )
-        embed.description = ""
-        embed.add_field(name="👤 ผู้ซื้อ", value=interaction.user.mention, inline=False)
-        embed.add_field(name="💵 เงินคงเหลือ", value=f"**{balance_display}** บาท", inline=False)
-        
-        if stock_type == "gamepass":
-            embed.add_field(
-                name="🎮 บริการกดเกมพาส", 
-                value=f"📦 โรบัคคงเหลือ: **{format_number(gamepass_stock)}**\n💰 เรท: {gamepass_rate} (ปกติ) | {gamepass_rate_high} (>{gamepass_threshold} Robux)", 
-                inline=False
-            )
-        
-        embed.set_footer(text="13bux")
-        embed.set_thumbnail(url=THUMBNAIL_URL)
-        
-        ticket_view = View(timeout=None)
-        
-        if stock_type == "gamepass":
-            form_btn = Button(label="📝 กรอกแบบฟอร์มเกมพาส", style=discord.ButtonStyle.primary, emoji="📝")
-            
-            async def form_callback(i):
-                if i.channel.id == channel.id:
-                    modal = GamepassTicketModal()
-                    await i.response.send_modal(modal)
-                else:
-                    await i.response.send_message("❌ คุณไม่สามารถใช้ปุ่มนี้ในช่องอื่นได้", ephemeral=True)
-            
-            form_btn.callback = form_callback
-            ticket_view.add_item(form_btn)
-        
-        await channel.send(embed=embed, view=ticket_view)
-        print(f"✅ ส่ง embed ต้อนรับในตั๋ว {channel.name} เรียบร้อย")
-
-        if admin_role:
-            admin_mention = admin_role.mention
-            await channel.send(content=f"{admin_role.mention} มีตั๋วใหม่!", delete_after=10)
-        else:
-            print(f"⚠️ Admin role not found with ID: {ADMIN_ROLE_ID}")
-            admin_mention = ""
-
-        welcome_msg = await channel.send(f"# สนใจซื้ออะไรแจ้งแอดมินได้เลยค่ะ {SUSHI_HEART_EMOJI} {admin_mention}")
-        print(f"✅ ส่งข้อความต้อนรับในตั๋ว {channel.name}")
-        
-    except Exception as e:
-        print(f"❌ Error opening ticket: {e}")
-        traceback.print_exc()
-        try:
-            await interaction.followup.send(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
-        except:
-            pass
+    """Legacy handler - routes to gamepass ticket"""
+    await handle_open_gamepass_ticket(interaction)
 
 async def save_ticket_transcript(channel, action_by=None, robux_amount=None, customer_name=None):
     try:
@@ -1516,12 +1638,9 @@ async def move_to_original_category(channel, product_type):
             return False
             
         guild = channel.guild
-        target_category = None
-        
-        if product_type == "gamepass":
-            target_category = guild.get_channel(SUSHI_GAMEPASS_CATEGORY_ID)
-            if not target_category:
-                target_category = discord.utils.get(guild.categories, id=SUSHI_GAMEPASS_CATEGORY_ID)
+        target_category = guild.get_channel(GAMEPASS_TICKET_CATEGORY_ID)
+        if not target_category:
+            target_category = discord.utils.get(guild.categories, id=GAMEPASS_TICKET_CATEGORY_ID)
         
         if not target_category:
             print(f"❌ ไม่พบ category สำหรับ {product_type}")
@@ -1898,7 +2017,7 @@ async def tkd_cmd(ctx):
     
     valid_formats = False
     
-    if channel_name.startswith("ticket-") or channel_name.startswith("topup-"):
+    if channel_name.startswith("ticket-") or channel_name.startswith("topup-") or channel_name.startswith("issue-"):
         valid_formats = True
     
     pattern = r'^\d{10}-\d+-[\w\u0E00-\u0E7F]+$'
@@ -2127,26 +2246,22 @@ class PaymentView(View):
         
         qr_btn = Button(label="สแกน QR ชำระเงิน", style=discord.ButtonStyle.success, emoji="📲")
         account_btn = Button(label="โอนผ่านเลขบัญชี", style=discord.ButtonStyle.primary, emoji="🏦")
-        truemoney_btn = Button(label="วอเล็ต (บวกเพิ่ม 5%)", style=discord.ButtonStyle.danger, emoji="🧡")
         
         qr_btn.callback = self.qr_callback
         account_btn.callback = self.account_callback
-        truemoney_btn.callback = self.truemoney_callback
         
         self.add_item(qr_btn)
         self.add_item(account_btn)
-        self.add_item(truemoney_btn)
     
     async def qr_callback(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="💳 ชำระเงินผ่าน QR Code",
-            description="**ธนาคารกรุงศรี (Krungsri)**",
+            title="💳 ชำระเงินผ่าน QR",
+            description="**ธนาคารกรุงไทย (Krung Thai)**",
             color=0x00FF00
         )
-        embed.add_field(name="🏦 ชื่อบัญชี", value="สุทัตตา เถลิงสุข", inline=False)
-        embed.add_field(name="⚠️ โน๊ตสลิป", value="เติมโรบัค 13bux เฟส Can pattarapol", inline=False)
-        embed.set_image(url="https://media.discordapp.net/attachments/1485285161955360963/1509440952270589974/canQR.png?ex=6a192fef&is=6a17de6f&hm=f15e0d8c3211ce1d4ae402b1e3891af28f34a31dd5ec47d003e372a179c9a3bc&=&format=webp&quality=lossless&width=567&height=1004")
-        embed.set_footer(text="13bux 🌸 • สแกน QR Code เพื่อชำระเงิน")
+        embed.add_field(name="🏦 ชื่อบัญชี", value="กฤติกา ตุล", inline=False)
+        embed.set_image(url="https://media.discordapp.net/attachments/1486683482183958568/1551169408049872986/image.png?ex=6ab0fe96&is=6aafad16&hm=80656856521a1474f12fdd6b755a4d9957d05a9fb4d78a66dc88261dea891e71&=&format=webp&quality=lossless&width=1001&height=1299")
+        embed.set_footer(text="13bux 🌸 • สแกน QR เพื่อชำระเงิน")
         
         view = BackButtonView(self)
         await interaction.response.edit_message(embed=embed, view=view)
@@ -2156,53 +2271,20 @@ class PaymentView(View):
             title="🏦 ธนาคารกรุงศรี Krungsri",
             color=0x0099FF
         )
-        embed.add_field(name="🏦 ชื่อบัญชี", value="สุทัตตา เถลิงสุข", inline=False)
-        embed.add_field(name="🔢 เลขบัญชี", value="**778-156804-4 **", inline=False)
-        embed.add_field(name="⚠️ โน๊ตสลิป", value="เติมโรบัค 13bux เฟส Can pattarapol", inline=False)
-        embed.set_image(url="https://media.discordapp.net/attachments/1485285161955360963/1511326590372675674/37f6d1bf7fe4bcf4841257e392a19678.jpg?ex=6a200c12&is=6a1eba92&hm=b215f35c0420487b651eee9cfca8cc5f0fb2611c6e1bcf0a6ff82273dc9d269f&=&format=webp&width=863&height=1295")
+        embed.add_field(name="🏦 ชื่อบัญชี", value="กฤติกา ตุล", inline=False)
+        embed.add_field(name="🔢 เลขบัญชี", value="**952-057409-3 **", inline=False)
         embed.set_footer(text="13bux 🌸")
         
         view = BackButtonView(self)
         copy_btn = Button(label="📋 คัดลอกเลขบัญชี", style=discord.ButtonStyle.secondary, emoji="📋")
         
         async def copy_cb(i):
-            await i.response.send_message("```7781568044```", ephemeral=True)
+            await i.response.send_message("```9520574093```", ephemeral=True)
         
         copy_btn.callback = copy_cb
         view.add_item(copy_btn)
         
         await interaction.response.edit_message(embed=embed, view=view)
-    
-    async def truemoney_callback(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="💰 ชำระเงินผ่านทรูมันนี่วอเล็ต",
-            description="**เบอร์โทรศัพท์:** 0808219616",
-            color=0xFF0000
-        )
-        embed.add_field(name="👤 ชื่อบัญชี", value="กิตติ", inline=False)
-        embed.add_field(name="⚠️ หมายเหตุ", value="โอนวอเล็ตบวกเพิ่ม 5%", inline=False)
-        embed.set_footer(text="13bux 🌸")
-        
-        view = BackButtonView(self)
-        copy_btn = Button(label="📋 คัดลอกเบอร์", style=discord.ButtonStyle.secondary, emoji="📋")
-        
-        async def copy_cb(i):
-            await i.response.send_message("```0808219616```", ephemeral=True)
-        
-        copy_btn.callback = copy_cb
-        view.add_item(copy_btn)
-        
-        await interaction.response.edit_message(embed=embed, view=view)
-
-
-class BackButtonView(View):
-    def __init__(self, parent_view: PaymentView):
-        super().__init__(timeout=None)
-        self.parent_view = parent_view
-        
-        back_btn = Button(label="◀ กลับ", style=discord.ButtonStyle.secondary, emoji="🔙")
-        back_btn.callback = self.back_callback
-        self.add_item(back_btn)
     
     async def back_callback(self, interaction: discord.Interaction):
         embed = discord.Embed(
@@ -2234,7 +2316,7 @@ async def payment_cmd(ctx):
         pass
         
 
-# ============ CHANGE 1 & 2: SIMPLE CALCULATOR COMMANDS (No emoji, no wallet line) ============
+# ============ SIMPLE CALCULATOR COMMANDS ============
 @bot.command()
 async def gp(ctx, *, expr):
     global gamepass_rate, gamepass_rate_high, gamepass_threshold
