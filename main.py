@@ -126,6 +126,9 @@ THUMBNAIL_URL = "https://media.discordapp.net/attachments/1460628263092359199/15
 # CHANGE 2: Updated big image URL
 MAIN_IMAGE_URL = "https://media.discordapp.net/attachments/1486683482183958568/1551167778726350848/content.png?ex=6ab0fd11&is=6aafab91&hm=1cd17fb232371815ed3ef88d4510238881096e94d231f7ef2ecca392fd8f5852&=&format=webp&quality=lossless&width=1745&height=1163"
 
+# Topup image URL
+TOPUP_IMAGE_URL = "https://media.discordapp.net/attachments/1535629996910182410/1542419322209697832/58082bd2-71f2-4132-a16d-64154fc001e5.png?ex=6ab0cd6f&is=6aaf7bef&hm=f22fb4eb2d2d2ed351bb83a23d1393c4891dc1491c8453e990e72cb2e0f15e5c&=&format=webp&quality=lossless&width=1623&height=1299"
+
 # File paths
 user_data_file = os.path.join(DATA_DIR, "user_data.json")
 ticket_transcripts_file = os.path.join(DATA_DIR, "ticket_transcripts.json")
@@ -566,6 +569,165 @@ def evaluate_expression(expr: str) -> float:
         raise ValueError(f"Invalid expression: {str(e)}")
 
 
+# ============ ROBUX TOPUP PACKAGE VIEWS ============
+class TopupMainMenuView(View):
+    """Main menu: 3 package tiers (🌱 แพ็กเริ่มต้น, ⭐ แพ็กยอดนิยม, 💎 แพ็กใหญ่)"""
+    def __init__(self):
+        super().__init__(timeout=None)
+        
+        starter_btn = Button(label="แพ็กเริ่มต้น", style=discord.ButtonStyle.success, emoji="🌱")
+        popular_btn = Button(label="แพ็กยอดนิยม", style=discord.ButtonStyle.primary, emoji="⭐")
+        big_btn = Button(label="แพ็กใหญ่", style=discord.ButtonStyle.danger, emoji="💎")
+        
+        async def starter_cb(i):
+            embed = discord.Embed(
+                title="🌱 แพ็กเริ่มต้น",
+                description="กรุณาเลือกจำนวนโรบัคที่ต้องการ",
+                color=0x00FF99
+            )
+            embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="80R • 160R • 240R • 500R", inline=False)
+            embed.set_footer(text="13bux • แพ็กเริ่มต้น")
+            embed.set_thumbnail(url=THUMBNAIL_URL)
+            await i.response.edit_message(embed=embed, view=TopupStarterView(self))
+        
+        async def popular_cb(i):
+            embed = discord.Embed(
+                title="⭐ แพ็กยอดนิยม",
+                description="กรุณาเลือกจำนวนโรบัคที่ต้องการ",
+                color=0x00FF99
+            )
+            embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="1000R • 1500R • 2000R • 2500R", inline=False)
+            embed.set_footer(text="13bux • แพ็กยอดนิยม")
+            embed.set_thumbnail(url=THUMBNAIL_URL)
+            await i.response.edit_message(embed=embed, view=TopupPopularView(self))
+        
+        async def big_cb(i):
+            embed = discord.Embed(
+                title="💎 แพ็กใหญ่",
+                description="กรุณาเลือกจำนวนโรบัคที่ต้องการ",
+                color=0x00FF99
+            )
+            embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="3500R • 5000R • 10000R • 15000R • 22500R", inline=False)
+            embed.set_footer(text="13bux • แพ็กใหญ่")
+            embed.set_thumbnail(url=THUMBNAIL_URL)
+            await i.response.edit_message(embed=embed, view=TopupBigView(self))
+        
+        starter_btn.callback = starter_cb
+        popular_btn.callback = popular_cb
+        big_btn.callback = big_cb
+        
+        self.add_item(starter_btn)
+        self.add_item(popular_btn)
+        self.add_item(big_btn)
+
+
+def _build_topup_main_menu_embed():
+    """Helper to build the main menu embed (for back button)"""
+    embed = discord.Embed(
+        title="💎 บริการเติมโรแท้ (Robux แท้)",
+        description="กรุณาเลือกแพ็กที่ต้องการด้านล่าง",
+        color=0x00FF99
+    )
+    embed.add_field(name="🌱 แพ็กเริ่มต้น", value="80R • 160R • 240R • 500R", inline=False)
+    embed.add_field(name="⭐ แพ็กยอดนิยม", value="1000R • 1500R • 2000R • 2500R", inline=False)
+    embed.add_field(name="💎 แพ็กใหญ่", value="3500R • 5000R • 10000R • 15000R • 22500R", inline=False)
+    embed.set_footer(text="13bux • เติมโรแท้")
+    embed.set_thumbnail(url=THUMBNAIL_URL)
+    return embed
+
+
+class TopupStarterView(View):
+    """80R, 160R, 240R, 500R + ย้อนกลับ"""
+    def __init__(self, parent_view=None):
+        super().__init__(timeout=None)
+        self.parent_view = parent_view
+        
+        for amount in [80, 160, 240, 500]:
+            btn = Button(label=f"{amount}R", style=discord.ButtonStyle.success)
+            btn.callback = self._make_amount_callback(amount)
+            self.add_item(btn)
+        
+        back_btn = Button(label="ย้อนกลับ", style=discord.ButtonStyle.secondary, emoji="◀️")
+        back_btn.callback = self._back_callback
+        self.add_item(back_btn)
+    
+    def _make_amount_callback(self, amount):
+        async def cb(i):
+            await _handle_topup_amount(i, amount)
+        return cb
+    
+    async def _back_callback(self, i):
+        await i.response.edit_message(embed=_build_topup_main_menu_embed(), view=TopupMainMenuView())
+
+
+class TopupPopularView(View):
+    """1000R, 1500R, 2000R, 2500R + ย้อนกลับ"""
+    def __init__(self, parent_view=None):
+        super().__init__(timeout=None)
+        self.parent_view = parent_view
+        
+        for amount in [1000, 1500, 2000, 2500]:
+            btn = Button(label=f"{amount}R", style=discord.ButtonStyle.primary)
+            btn.callback = self._make_amount_callback(amount)
+            self.add_item(btn)
+        
+        back_btn = Button(label="ย้อนกลับ", style=discord.ButtonStyle.secondary, emoji="◀️")
+        back_btn.callback = self._back_callback
+        self.add_item(back_btn)
+    
+    def _make_amount_callback(self, amount):
+        async def cb(i):
+            await _handle_topup_amount(i, amount)
+        return cb
+    
+    async def _back_callback(self, i):
+        await i.response.edit_message(embed=_build_topup_main_menu_embed(), view=TopupMainMenuView())
+
+
+class TopupBigView(View):
+    """3500R, 5000R, 10000R, 15000R, 22500R + ย้อนกลับ"""
+    def __init__(self, parent_view=None):
+        super().__init__(timeout=None)
+        self.parent_view = parent_view
+        
+        for amount in [3500, 5000, 10000, 15000, 22500]:
+            btn = Button(label=f"{amount}R", style=discord.ButtonStyle.danger)
+            btn.callback = self._make_amount_callback(amount)
+            self.add_item(btn)
+        
+        back_btn = Button(label="ย้อนกลับ", style=discord.ButtonStyle.secondary, emoji="◀️")
+        back_btn.callback = self._back_callback
+        self.add_item(back_btn)
+    
+    def _make_amount_callback(self, amount):
+        async def cb(i):
+            await _handle_topup_amount(i, amount)
+        return cb
+    
+    async def _back_callback(self, i):
+        await i.response.edit_message(embed=_build_topup_main_menu_embed(), view=TopupMainMenuView())
+
+
+async def _handle_topup_amount(interaction, robux_amount):
+    """Handle when customer clicks a specific robux amount button"""
+    admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
+    admin_mention = admin_role.mention if admin_role else f"<@&{ADMIN_ROLE_ID}>"
+    
+    embed = discord.Embed(
+        title="📦 รับออร์เดอร์เติมโรแท้",
+        description=f"คุณเลือกแพ็ก **{format_number(robux_amount)} Robux**",
+        color=0x00FF99
+    )
+    embed.add_field(name="👤 ผู้ซื้อ", value=interaction.user.mention, inline=False)
+    embed.add_field(name="💎 จำนวนโรบัค", value=f"**{format_number(robux_amount)} R**", inline=False)
+    embed.set_footer(text=f"13bux • {get_thailand_time().strftime('%d/%m/%y %H:%M')}")
+    
+    await interaction.response.send_message(
+        content=f"รับออร์เดอร์ค่ะ รอแอดมินตอบกลับนะคะ {admin_mention}",
+        embed=embed
+    )
+
+
 # ============ ISSUE TICKET MODAL ============
 class IssueReportModal(Modal, title="⚠️ แจ้งปัญหา"):
     issue_description = TextInput(
@@ -595,42 +757,6 @@ class IssueReportModal(Modal, title="⚠️ แจ้งปัญหา"):
             )
         except Exception as e:
             await i.response.send_message(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
-
-
-# ============ ROBUX TOPUP PACKAGE VIEW ============
-class RobuxTopupPackageView(View):
-    """View with 3 buttons for choosing robux topup packages"""
-    def __init__(self):
-        super().__init__(timeout=None)
-        
-        starter_btn = Button(label="แพ็กเริ่มต้น", style=discord.ButtonStyle.success, emoji="🌱")
-        popular_btn = Button(label="แพ็กยอดนิยม", style=discord.ButtonStyle.primary, emoji="⭐")
-        big_btn = Button(label="แพ็กใหญ่", style=discord.ButtonStyle.danger, emoji="💎")
-        
-        starter_btn.callback = self.starter_callback
-        popular_btn.callback = self.popular_callback
-        big_btn.callback = self.big_callback
-        
-        self.add_item(starter_btn)
-        self.add_item(popular_btn)
-        self.add_item(big_btn)
-    
-    async def _handle_package(self, interaction, package_name):
-        admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
-        admin_mention = admin_role.mention if admin_role else f"<@&{ADMIN_ROLE_ID}>"
-        
-        await interaction.response.send_message(
-            f"รับออร์เดอร์ค่ะ รอแอดมินตอบกลับนะคะ {admin_mention}\n📦 แพ็ก: **{package_name}**"
-        )
-    
-    async def starter_callback(self, interaction: discord.Interaction):
-        await self._handle_package(interaction, "แพ็กเริ่มต้น")
-    
-    async def popular_callback(self, interaction: discord.Interaction):
-        await self._handle_package(interaction, "แพ็กยอดนิยม")
-    
-    async def big_callback(self, interaction: discord.Interaction):
-        await self._handle_package(interaction, "แพ็กใหญ่")
 
 
 class CalculatorView(View):
@@ -897,20 +1023,7 @@ async def handle_open_gamepass_ticket(interaction):
         embed.set_footer(text="13bux")
         embed.set_thumbnail(url=THUMBNAIL_URL)
         
-        ticket_view = View(timeout=None)
-        form_btn = Button(label="📝 กรอกแบบฟอร์มเกมพาส", style=discord.ButtonStyle.primary, emoji="📝")
-        
-        async def form_callback(i):
-            if i.channel.id == channel.id:
-                modal = GamepassTicketModal()
-                await i.response.send_modal(modal)
-            else:
-                await i.response.send_message("❌ คุณไม่สามารถใช้ปุ่มนี้ในช่องอื่นได้", ephemeral=True)
-        
-        form_btn.callback = form_callback
-        ticket_view.add_item(form_btn)
-        
-        await channel.send(embed=embed, view=ticket_view)
+        await channel.send(embed=embed)
         print(f"✅ ส่ง embed ต้อนรับในตั๋ว {channel.name} เรียบร้อย")
 
         if admin_role:
@@ -1014,22 +1127,46 @@ async def handle_open_topup_ticket(interaction):
         user_balance = get_user_robux_balance(interaction.user.id)
         balance_display = f"{user_balance:.2f}" if user_balance > 0 else "0"
         
-        embed = discord.Embed(
-            title="💎 บริการเติมโรแท้ (Robux แท้)", 
+        # ===== First: send the topup image with welcome info =====
+        image_embed = discord.Embed(
+            title="💎 บริการเติมโรแท้ (Robux แท้)",
+            description="ยินดีต้อนรับ! กรุณาเลือกแพ็กที่ต้องการด้านล่างนี้",
             color=0x00FF99
         )
-        embed.add_field(name="👤 ผู้ซื้อ", value=interaction.user.mention, inline=False)
-        embed.add_field(name="💵 เงินคงเหลือ", value=f"**{balance_display}** บาท", inline=False)
-        embed.add_field(
-            name="📦 เลือกแพ็กที่ต้องการ", 
-            value="กรุณากดปุ่มด้านล่างเพื่อเลือกแพ็ก", 
+        image_embed.add_field(name="👤 ผู้ซื้อ", value=interaction.user.mention, inline=False)
+        image_embed.add_field(name="💵 เงินคงเหลือ", value=f"**{balance_display}** บาท", inline=False)
+        image_embed.set_image(url=TOPUP_IMAGE_URL)
+        image_embed.set_footer(text="13bux • เติมโรแท้")
+        
+        await channel.send(embed=image_embed)
+        print(f"✅ ส่งรูปภาพเติมโรแท้ในตั๋ว {channel.name}")
+        
+        # ===== Second: send the package selection embed with buttons =====
+        menu_embed = discord.Embed(
+            title="📦 เลือกแพ็กที่ต้องการ",
+            description="กรุณาเลือกแพ็กที่คุณต้องการด้านล่าง",
+            color=0x00FF99
+        )
+        menu_embed.add_field(
+            name="🌱 แพ็กเริ่มต้น", 
+            value="80R • 160R • 240R • 500R", 
             inline=False
         )
-        embed.set_footer(text="13bux • เติมโรแท้")
-        embed.set_thumbnail(url=THUMBNAIL_URL)
+        menu_embed.add_field(
+            name="⭐ แพ็กยอดนิยม", 
+            value="1000R • 1500R • 2000R • 2500R", 
+            inline=False
+        )
+        menu_embed.add_field(
+            name="💎 แพ็กใหญ่", 
+            value="3500R • 5000R • 10000R • 15000R • 22500R", 
+            inline=False
+        )
+        menu_embed.set_footer(text="13bux • เลือกแพ็กเพื่อดูรายละเอียด")
+        menu_embed.set_thumbnail(url=THUMBNAIL_URL)
         
-        await channel.send(embed=embed, view=RobuxTopupPackageView())
-        print(f"✅ ส่ง embed เติมโรแท้ในตั๋ว {channel.name}")
+        await channel.send(embed=menu_embed, view=TopupMainMenuView())
+        print(f"✅ ส่งเมนูแพ็กเติมโรแท้ในตั๋ว {channel.name}")
 
         if admin_role:
             await channel.send(content=f"{admin_role.mention} มีตั๋วเติมโรแท้ใหม่!", delete_after=10)
@@ -1123,33 +1260,20 @@ async def handle_open_issue_ticket(interaction):
         
         embed = discord.Embed(
             title="⚠️ แจ้งปัญหา", 
-            description="กรุณากรอกรายละเอียดปัญหาที่คุณพบโดยกดปุ่มด้านล่าง",
+            description="กรุณาพิมพ์รายละเอียดปัญหาที่คุณพบในช่องนี้ได้เลย",
             color=0xFFA500
         )
         embed.add_field(name="👤 ผู้แจ้ง", value=interaction.user.mention, inline=False)
         embed.set_footer(text="13bux • แจ้งปัญหา")
         embed.set_thumbnail(url=THUMBNAIL_URL)
         
-        ticket_view = View(timeout=None)
-        report_btn = Button(label="📝 กรอกรายละเอียดปัญหา", style=discord.ButtonStyle.primary, emoji="📝")
-        
-        async def report_callback(i):
-            if i.channel.id == channel.id:
-                modal = IssueReportModal()
-                await i.response.send_modal(modal)
-            else:
-                await i.response.send_message("❌ คุณไม่สามารถใช้ปุ่มนี้ในช่องอื่นได้", ephemeral=True)
-        
-        report_btn.callback = report_callback
-        ticket_view.add_item(report_btn)
-        
-        await channel.send(embed=embed, view=ticket_view)
+        await channel.send(embed=embed)
         print(f"✅ ส่ง embed แจ้งปัญหาในตั๋ว {channel.name}")
 
         if admin_role:
             await channel.send(content=f"{admin_role.mention} มีตั๋วแจ้งปัญหาใหม่!", delete_after=10)
         
-        await channel.send(f"# กรุณากรอกรายละเอียดปัญหาด้านบนได้เลยค่ะ {SUSHI_HEART_EMOJI}")
+        await channel.send(f"# กรุณาพิมพ์รายละเอียดปัญหาที่คุณพบได้เลยค่ะ {SUSHI_HEART_EMOJI}")
         
     except Exception as e:
         print(f"❌ Error opening issue ticket: {e}")
@@ -2177,21 +2301,8 @@ async def process_order_more_fixed(channel, buyer, interaction):
         order_embed.set_footer(text="13bux")
         order_embed.set_thumbnail(url=THUMBNAIL_URL)
         
-        ticket_view = View(timeout=None)
-        form_btn = Button(label="📝 กรอกแบบฟอร์มเกมพาส", style=discord.ButtonStyle.primary, emoji="📝")
-        
-        async def form_callback(interaction2):
-            if interaction2.channel.id == channel.id:
-                modal = GamepassTicketModal()
-                await interaction2.response.send_modal(modal)
-            else:
-                await interaction2.response.send_message("❌ คุณไม่สามารถใช้ปุ่มนี้ในช่องอื่นได้", ephemeral=True)
-        
-        form_btn.callback = form_callback
-        ticket_view.add_item(form_btn)
-        
-        await channel.send(embed=order_embed, view=ticket_view)
-        await interaction.followup.send("✅ รีเซ็ตระบบเรียบร้อย! กรุณากรอกแบบฟอร์มด้านบนเพื่อสั่งของเพิ่ม", ephemeral=True)
+        await channel.send(embed=order_embed)
+        await interaction.followup.send("✅ รีเซ็ตระบบเรียบร้อย! กรุณาสั่งของเพิ่มได้เลยค่ะ", ephemeral=True)
         
         print(f"✅ Order more processed for {channel.name} - Timer cancelled")
         
@@ -2263,8 +2374,7 @@ class PaymentView(View):
         embed.set_image(url="https://media.discordapp.net/attachments/1486683482183958568/1551169408049872986/image.png?ex=6ab0fe96&is=6aafad16&hm=80656856521a1474f12fdd6b755a4d9957d05a9fb4d78a66dc88261dea891e71&=&format=webp&quality=lossless&width=1001&height=1299")
         embed.set_footer(text="13bux 🌸 • สแกน QR เพื่อชำระเงิน")
         
-        view = BackButtonView(self)
-        await interaction.response.edit_message(embed=embed, view=view)
+        await interaction.response.edit_message(embed=embed, view=PaymentView())
     
     async def account_callback(self, interaction: discord.Interaction):
         embed = discord.Embed(
@@ -2275,7 +2385,7 @@ class PaymentView(View):
         embed.add_field(name="🔢 เลขบัญชี", value="**952-057409-3 **", inline=False)
         embed.set_footer(text="13bux 🌸")
         
-        view = BackButtonView(self)
+        view = PaymentView()
         copy_btn = Button(label="📋 คัดลอกเลขบัญชี", style=discord.ButtonStyle.secondary, emoji="📋")
         
         async def copy_cb(i):
@@ -2285,17 +2395,6 @@ class PaymentView(View):
         view.add_item(copy_btn)
         
         await interaction.response.edit_message(embed=embed, view=view)
-    
-    async def back_callback(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="🌸 เลือกช่องทางชำระเงิน",
-            description="กรุณาเลือกช่องทางการชำระเงินด้านล่าง",
-            color=0xFFA500
-        )
-        embed.set_footer(text="13bux 🌸")
-        embed.set_thumbnail(url=THUMBNAIL_URL)
-        
-        await interaction.response.edit_message(embed=embed, view=self.parent_view)
 
 @bot.command(name="qr")
 async def payment_cmd(ctx):
