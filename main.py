@@ -79,6 +79,18 @@ intents = discord.Intents.all()
 intents.message_content = True
 intents.members = True
 
+# ============ CONSTANTS ============
+SUSHI_HEART_EMOJI = "💖"
+PINK_COLOR = 0xFF69B4
+
+WELCOME_MESSAGES = [
+    "ยินดีต้อนรับ {0} สู่เซิร์ฟเวอร์! 🌸",
+    "สวัสดี {0}! ยินดีต้อนรับนะคะ 💖",
+    "ยินดีต้อนรับ {0} เข้ามาเป็นส่วนหนึ่งของเรา! ✨",
+    "หวัดดี {0}! ขอให้สนุกนะคะ 🎉",
+    "ยินดีต้อนรับ {0}! มาซื้อของกับเราสิ 🛒",
+]
+
 # Global variables
 gamepass_rate = 5
 gamepass_rate_high = 5
@@ -92,8 +104,8 @@ daily_sales_date = get_thailand_time().strftime("%Y%m%d")
 
 # Channel IDs
 MAIN_CHANNEL_ID = 1535664744256634921
-STATUS_CHANNEL_ID = 1535992997517467738       # ✅ renamed on !open / !close
-RATE_CHANNEL_ID = 1535629577152495668         # ✅ renamed on !rate <rate>
+STATUS_CHANNEL_ID = 1535992997517467738
+RATE_CHANNEL_ID = 1535629577152495668
 SALES_LOG_CHANNEL_ID = 1551146468251926558
 CREDIT_CHANNEL_ID = 1535664959785144421
 DELIVERED_CATEGORY_ID = 1551147734050938930
@@ -120,7 +132,7 @@ MAIN_IMAGE_URL = "https://media.discordapp.net/attachments/1486683482183958568/1
 # Topup image URL
 TOPUP_IMAGE_URL = "https://media.discordapp.net/attachments/1535629996910182410/1542419322209697832/58082bd2-71f2-4132-a16d-64154fc001e5.png?ex=6ab0cd6f&is=6aaf7bef&hm=f22fb4eb2d2d2ed351bb83a23d1393c4891dc1491c8453e990e72cb2e0f15e5c&=&format=webp&quality=lossless&width=1623&height=1299"
 
-# ✅ Topup package prices (robux -> baht)
+# Topup package prices (robux -> baht)
 TOPUP_PRICES = {
     80: 35,
     160: 66,
@@ -176,6 +188,29 @@ daily_sales = {"robux_sold": 0, "date": get_thailand_time().strftime("%Y%m%d")}
 
 sp_added_tracker = {}
 
+# ============ JSON HELPER FUNCTIONS ============
+def save_json(filepath, data):
+    try:
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        temp_filepath = filepath + ".tmp"
+        with open(temp_filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(temp_filepath, filepath)
+        return True
+    except Exception as e:
+        print(f"❌ Error saving {filepath}: {e}")
+        return False
+
+def load_json(filepath, default=None):
+    try:
+        if os.path.exists(filepath):
+            with open(filepath, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return default if default is not None else {}
+    except Exception as e:
+        print(f"❌ Error loading {filepath}: {e}")
+        return default if default is not None else {}
+
 # ============ STOCK FUNCTIONS ============
 def save_stock_values():
     try:
@@ -210,6 +245,265 @@ def load_stock_values():
     except Exception as e:
         print(f"❌ Error loading stock: {e}")
 
+# ============ DAILY SALES FUNCTIONS ============
+def save_daily_sales():
+    try:
+        data = {
+            "robux_sold": daily_robux_sold,
+            "date": daily_sales_date,
+            "last_updated": get_thailand_time().isoformat()
+        }
+        save_json(daily_sales_file, data)
+        return True
+    except Exception as e:
+        print(f"❌ Error saving daily sales: {e}")
+        return False
+
+def load_daily_sales():
+    global daily_robux_sold, daily_sales_date
+    try:
+        if os.path.exists(daily_sales_file):
+            data = load_json(daily_sales_file, {})
+            saved_date = data.get("date", "")
+            current_date = get_thailand_time().strftime("%Y%m%d")
+            
+            if saved_date == current_date:
+                daily_robux_sold = data.get("robux_sold", 0)
+                daily_sales_date = saved_date
+                print(f"✅ Daily sales loaded: {daily_robux_sold} robux")
+            else:
+                daily_robux_sold = 0
+                daily_sales_date = current_date
+                save_daily_sales()
+                print(f"✅ New day - daily sales reset to 0")
+        else:
+            daily_robux_sold = 0
+            daily_sales_date = get_thailand_time().strftime("%Y%m%d")
+            save_daily_sales()
+    except Exception as e:
+        print(f"❌ Error loading daily sales: {e}")
+
+async def add_daily_robux(amount):
+    global daily_robux_sold, daily_sales_date
+    try:
+        current_date = get_thailand_time().strftime("%Y%m%d")
+        if daily_sales_date != current_date:
+            daily_robux_sold = 0
+            daily_sales_date = current_date
+        
+        daily_robux_sold += amount
+        save_daily_sales()
+        print(f"✅ Daily robux: {daily_robux_sold}")
+    except Exception as e:
+        print(f"❌ Error adding daily robux: {e}")
+
+def reset_daily_robux():
+    global daily_robux_sold, daily_sales_date
+    daily_robux_sold = 0
+    daily_sales_date = get_thailand_time().strftime("%Y%m%d")
+    save_daily_sales()
+    print(f"✅ Daily robux reset to 0")
+
+# ============ SP FUNCTIONS ============
+async def add_sp(user_id, robux_amount, ticket_id=None):
+    try:
+        user_id_str = str(user_id)
+        
+        if ticket_id and ticket_id in sp_added_tracker:
+            print(f"⚠️ SP already added for ticket {ticket_id}")
+            return False
+        
+        if user_id_str not in user_levels:
+            user_levels[user_id_str] = {"sp": 0, "total_robux": 0}
+        
+        sp_amount = robux_amount
+        user_levels[user_id_str]["sp"] += sp_amount
+        user_levels[user_id_str]["total_robux"] += robux_amount
+        
+        if ticket_id:
+            sp_added_tracker[ticket_id] = True
+        
+        save_json(user_levels_file, user_levels)
+        print(f"✅ Added {sp_amount} SP to user {user_id} (total: {user_levels[user_id_str]['sp']})")
+        return True
+    except Exception as e:
+        print(f"❌ Error adding SP: {e}")
+        return False
+
+def backup_user_levels():
+    try:
+        if os.path.exists(user_levels_file):
+            backup_dir = os.path.join(DATA_DIR, "backups")
+            os.makedirs(backup_dir, exist_ok=True)
+            timestamp = get_thailand_time().strftime("%Y%m%d_%H%M%S")
+            backup_file = os.path.join(backup_dir, f"user_levels_backup_{timestamp}.json")
+            shutil.copy2(user_levels_file, backup_file)
+            print(f"✅ Backup created: {backup_file}")
+            
+            backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("user_levels_backup_")])
+            while len(backups) > 10:
+                os.remove(os.path.join(backup_dir, backups[0]))
+                backups.pop(0)
+        return True
+    except Exception as e:
+        print(f"❌ Error creating backup: {e}")
+        return False
+
+# ============ LOAD/SAVE ALL DATA ============
+def load_all_data():
+    global user_data, ticket_transcripts, ticket_robux_data, ticket_customer_data
+    global ticket_buyer_data, user_levels, user_notes, ticket_counter
+    
+    try:
+        user_data = load_json(user_data_file, {})
+        ticket_transcripts = load_json(ticket_transcripts_file, {})
+        ticket_robux_data = load_json(ticket_robux_data_file, {})
+        ticket_customer_data = load_json(ticket_customer_data_file, {})
+        ticket_buyer_data = load_json(ticket_buyer_data_file, {})
+        user_levels = load_json(user_levels_file, {})
+        user_notes = load_json(user_notes_file, {})
+        
+        ticket_counter = load_json(ticket_counter_file, {"counter": 1, "date": get_thailand_time().strftime("%d%m%y")})
+        current_date = get_thailand_time().strftime("%d%m%y")
+        if ticket_counter.get("date") != current_date:
+            ticket_counter = {"counter": 1, "date": current_date}
+        
+        load_stock_values()
+        load_daily_sales()
+        load_robux_balance()
+        load_notes()
+        
+        print(f"✅ All data loaded successfully")
+        print(f"   - Users: {len(user_levels)}")
+        print(f"   - Tickets: {len(ticket_transcripts)}")
+        print(f"   - Notes: {len(user_notes)}")
+        return True
+    except Exception as e:
+        print(f"❌ Error loading all data: {e}")
+        traceback.print_exc()
+        return False
+
+async def save_all_data():
+    try:
+        save_json(user_data_file, user_data)
+        save_json(ticket_transcripts_file, ticket_transcripts)
+        save_json(ticket_robux_data_file, ticket_robux_data)
+        save_json(ticket_customer_data_file, ticket_customer_data)
+        save_json(ticket_buyer_data_file, ticket_buyer_data)
+        save_json(user_levels_file, user_levels)
+        save_json(user_notes_file, user_notes)
+        save_json(ticket_counter_file, ticket_counter)
+        save_stock_values()
+        save_daily_sales()
+        save_robux_balance()
+        return True
+    except Exception as e:
+        print(f"❌ Error saving all data: {e}")
+        return False
+
+def save_all_data_sync():
+    try:
+        save_json(user_data_file, user_data)
+        save_json(ticket_transcripts_file, ticket_transcripts)
+        save_json(ticket_robux_data_file, ticket_robux_data)
+        save_json(ticket_customer_data_file, ticket_customer_data)
+        save_json(ticket_buyer_data_file, ticket_buyer_data)
+        save_json(user_levels_file, user_levels)
+        save_json(user_notes_file, user_notes)
+        save_json(ticket_counter_file, ticket_counter)
+        save_stock_values()
+        save_daily_sales()
+        save_robux_balance()
+        print("✅ All data saved (sync)")
+        return True
+    except Exception as e:
+        print(f"❌ Error saving all data (sync): {e}")
+        return False
+
+# ============ ROBUX BALANCE FUNCTIONS ============
+def load_robux_balance():
+    global user_robux_balance
+    try:
+        if os.path.exists(user_robux_balance_file):
+            with open(user_robux_balance_file, 'r', encoding='utf-8') as f:
+                user_robux_balance = json.load(f)
+                for key, value in user_robux_balance.items():
+                    if isinstance(value, str):
+                        user_robux_balance[key] = float(value)
+                print(f"✅ Loaded robux balance for {len(user_robux_balance)} users")
+        else:
+            user_robux_balance = {}
+            save_robux_balance()
+    except Exception as e:
+        print(f"❌ Error loading robux balance: {e}")
+        user_robux_balance = {}
+
+def save_robux_balance():
+    try:
+        with open(user_robux_balance_file, 'w', encoding='utf-8') as f:
+            json.dump(user_robux_balance, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print(f"❌ Error saving robux balance: {e}")
+        return False
+
+def get_user_robux_balance(user_id):
+    user_id_str = str(user_id)
+    return user_robux_balance.get(user_id_str, 0)
+
+def set_user_robux_balance(user_id, amount):
+    user_id_str = str(user_id)
+    user_robux_balance[user_id_str] = amount
+    save_robux_balance()
+    return amount
+
+def deduct_user_robux_balance(user_id, amount):
+    user_id_str = str(user_id)
+    current = user_robux_balance.get(user_id_str, 0)
+    if current < amount:
+        return None
+    new_balance = current - amount
+    user_robux_balance[user_id_str] = new_balance
+    save_robux_balance()
+    return new_balance
+
+def add_user_robux_balance(user_id, amount):
+    user_id_str = str(user_id)
+    current = user_robux_balance.get(user_id_str, 0)
+    new_balance = current + amount
+    user_robux_balance[user_id_str] = new_balance
+    save_robux_balance()
+    return new_balance
+
+# ============ NOTES FUNCTIONS ============
+def load_notes():
+    global user_notes
+    try:
+        if os.path.exists(user_notes_file):
+            with open(user_notes_file, 'r', encoding='utf-8') as f:
+                user_notes = json.load(f)
+                print(f"✅ Loaded notes for {len(user_notes)} users")
+        else:
+            user_notes = {}
+            save_notes()
+    except Exception as e:
+        print(f"❌ Error loading notes: {e}")
+        user_notes = {}
+
+def save_notes():
+    try:
+        with open(user_notes_file, 'w', encoding='utf-8') as f:
+            json.dump(user_notes, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print(f"❌ Error saving notes: {e}")
+        return False
+
+async def update_notes_channel():
+    try:
+        print("ℹ️ Notes channel update called (no implementation)")
+    except Exception as e:
+        print(f"❌ Error updating notes channel: {e}")
 
 # ============ HELPER FUNCTIONS ============
 def get_gamepass_rate(robux_amount):
@@ -844,7 +1138,7 @@ async def handle_open_topup_ticket(interaction):
         ))
         await interaction.followup.send("📩 เปิดตั๋วเติมโรแท้เรียบร้อย", view=view, ephemeral=True)
         
-        # ===== Simplified embed: only ผู้ซื้อ =====
+        # ===== First embed: only ผู้ซื้อ + image =====
         image_embed = discord.Embed(
             title="💎 บริการเติมโรแท้ (Robux แท้)",
             description="ยินดีต้อนรับ! กรุณาเลือกแพ็กที่ต้องการด้านล่างนี้",
@@ -1286,7 +1580,6 @@ async def auto_delete_ticket_after_delay(channel, delay_seconds):
     except Exception as e:
         print(f"❌ Error in auto_delete_ticket_after_delay: {e}")
 
-# ✅ UPDATED: only renames STATUS_CHANNEL_ID (NOT the main channel)
 async def update_channel_name():
     try:
         channel = bot.get_channel(STATUS_CHANNEL_ID)
@@ -1305,7 +1598,6 @@ async def update_channel_name():
     except Exception as e:
         print(f"❌ Error updating status channel name: {e}")
 
-# ✅ UPDATED: only renames RATE_CHANNEL_ID
 async def update_rate_channel_name():
     try:
         channel = bot.get_channel(RATE_CHANNEL_ID)
@@ -1313,7 +1605,6 @@ async def update_rate_channel_name():
             print(f"❌ Rate channel not found: {RATE_CHANNEL_ID}")
             return
         
-        # Preserve the ⋆˚🐷ㆍเรทX pattern
         new_name = f"⋆˚🐷ㆍเรท{gamepass_rate}"
         
         if channel.name != new_name:
@@ -1325,7 +1616,6 @@ async def update_rate_channel_name():
     except Exception as e:
         print(f"❌ Error updating rate channel name: {e}")
 
-# ✅ UPDATED: only shows rate, no stock line
 async def update_main_channel():
     try:
         channel = bot.get_channel(MAIN_CHANNEL_ID)
@@ -1344,7 +1634,6 @@ async def update_main_channel():
         
         embed = discord.Embed(title=status_text, color=color)
         
-        # ✅ Only show rate, no stock
         embed.add_field(
             name=f"🎮 กดเกมพาสเรท ({gamepass_rate})",
             value="\u200b",
@@ -1641,7 +1930,7 @@ async def open_cmd(ctx):
     
     await bot.command_rate_limiter.acquire()
     save_stock_values()
-    await update_channel_name()      # rename STATUS_CHANNEL_ID → 🟢 เปิด
+    await update_channel_name()
     await update_main_channel()
     
     embed = discord.Embed(title="✅ เปิดร้าน", description="ร้าน 13bux เปิดให้บริการ", color=0x00FF00)
@@ -1661,7 +1950,7 @@ async def close_cmd(ctx):
     
     await bot.command_rate_limiter.acquire()
     save_stock_values()
-    await update_channel_name()      # rename STATUS_CHANNEL_ID → 🔴 ปิด
+    await update_channel_name()
     await update_main_channel()
     
     embed = discord.Embed(title="🔴 ปิดร้าน", description="ร้าน 13bux ปิดให้บริการชั่วคราว", color=0xFF0000)
@@ -1726,7 +2015,7 @@ async def stock(ctx, stock_type=None, amount=None):
         await ctx.send(embed=embed)
 
 
-# ============ UPDATED RATE COMMAND ============
+# ============ RATE COMMAND ============
 @bot.command()
 @admin_only()
 async def rate(ctx, normal_rate=None):
@@ -1741,14 +2030,12 @@ async def rate(ctx, normal_rate=None):
     except:
         pass
     
-    # No argument → show current rate
     if normal_rate is None:
         embed = discord.Embed(title="🌸 เรทโรบัคปัจจุบัน", color=0x00FF99)
         embed.add_field(name="🎮 Gamepass Rate", value=f"**{gamepass_rate}**", inline=True)
         await ctx.send(embed=embed)
         return
     
-    # With argument → set new rate + rename channel
     try:
         new_rate = float(normal_rate)
         if new_rate <= 0:
@@ -1759,7 +2046,6 @@ async def rate(ctx, normal_rate=None):
         gamepass_rate_high = new_rate
         save_stock_values()
         
-        # ✅ Also rename RATE_CHANNEL_ID to ⋆˚🐷ㆍเรท{rate}
         await update_rate_channel_name()
         
         embed = discord.Embed(
@@ -1909,8 +2195,7 @@ async def odt(ctx, *, expr=None):
         if buyer:
             await add_buyer_role(buyer, ctx.guild)
         
-        # ✅ Use TOPUP_PRICES mapping
-        price = TOPUP_PRICES.get(robux, robux)  # fallback to 1:1 if not in map
+        price = TOPUP_PRICES.get(robux, robux)
         price_int = round_price(price)
         
         balance_message = None
@@ -2336,8 +2621,8 @@ async def on_ready():
     update_credit_channel_task.start()
     
     await update_credit_channel_name()
-    await update_channel_name()         # ✅ Set initial status channel name
-    await update_rate_channel_name()    # ✅ Set initial rate channel name
+    await update_channel_name()
+    await update_rate_channel_name()
     await update_main_channel()
     await update_notes_channel()
     
