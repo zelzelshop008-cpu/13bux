@@ -504,6 +504,28 @@ def get_gamepass_rate(robux_amount):
 def calculate_wallet_price(price):
     return round_price(price * 1.05)
 
+def format_rate_for_channel(rate):
+    """
+    Format rate for channel name.
+    - Integer rate (5)     -> "5"
+    - Decimal rate (5.5)   -> "5จุด5"
+    - Decimal rate (100.0) -> "100"
+    - Decimal rate (5.25)  -> "5จุด25"
+    """
+    try:
+        rate_float = float(rate)
+    except (ValueError, TypeError):
+        return str(rate)
+    
+    # If it's a whole number, just show the integer
+    if rate_float.is_integer():
+        return str(int(rate_float))
+    
+    # Otherwise, replace the decimal point with "จุด"
+    # Use repr-like formatting to avoid floating point artifacts
+    rate_str = f"{rate_float:g}"  # removes trailing zeros
+    return rate_str.replace(".", "จุด")
+
 class RateLimiter:
     def __init__(self, max_calls=1, period=1.0):
         self.max_calls = max_calls
@@ -593,7 +615,7 @@ class TopupMainMenuView(View):
             embed = discord.Embed(
                 title="🌱 แพ็กเริ่มต้น",
                 description="กรุณาเลือกจำนวนโรบัคที่ต้องการ",
-                color=0x00FF99
+                color=PINK_COLOR
             )
             embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="80R • 160R • 240R • 500R", inline=False)
             embed.set_footer(text="13bux • แพ็กเริ่มต้น")
@@ -604,7 +626,7 @@ class TopupMainMenuView(View):
             embed = discord.Embed(
                 title="⭐ แพ็กยอดนิยม",
                 description="กรุณาเลือกจำนวนโรบัคที่ต้องการ",
-                color=0x00FF99
+                color=PINK_COLOR
             )
             embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="1000R • 1500R • 2000R • 2500R", inline=False)
             embed.set_footer(text="13bux • แพ็กยอดนิยม")
@@ -615,7 +637,7 @@ class TopupMainMenuView(View):
             embed = discord.Embed(
                 title="💎 แพ็กใหญ่",
                 description="กรุณาเลือกจำนวนโรบัคที่ต้องการ",
-                color=0x00FF99
+                color=PINK_COLOR
             )
             embed.add_field(name="📦 แพ็กที่มีให้เลือก", value="3500R • 5000R • 10000R • 15000R • 22500R", inline=False)
             embed.set_footer(text="13bux • แพ็กใหญ่")
@@ -636,7 +658,7 @@ def _build_topup_main_menu_embed():
     embed = discord.Embed(
         title="💎 บริการเติมโรแท้ (Robux แท้)",
         description="กรุณาเลือกแพ็กที่ต้องการด้านล่าง",
-        color=0x00FF99
+        color=PINK_COLOR
     )
     embed.add_field(name="🌱 แพ็กเริ่มต้น", value="80R • 160R • 240R • 500R", inline=False)
     embed.add_field(name="⭐ แพ็กยอดนิยม", value="1000R • 1500R • 2000R • 2500R", inline=False)
@@ -735,7 +757,7 @@ async def _handle_topup_amount(interaction, robux_amount):
     embed = discord.Embed(
         title="📦 รับออร์เดอร์เติมโรแท้",
         description=f"คุณเลือกแพ็ก **{format_number(robux_amount)} Robux**",
-        color=0x00FF99
+        color=PINK_COLOR
     )
     embed.add_field(name="👤 ผู้ซื้อ", value=interaction.user.mention, inline=False)
     embed.add_field(name="💎 จำนวนโรบัค", value=f"**{format_number(robux_amount)} R**", inline=False)
@@ -766,7 +788,7 @@ class IssueReportModal(Modal, title="⚠️ แจ้งปัญหา"):
             embed = discord.Embed(
                 title="⚠️ รายงานปัญหาใหม่",
                 description=self.issue_description.value,
-                color=0xFFA500
+                color=PINK_COLOR
             )
             embed.add_field(name="👤 ผู้แจ้ง", value=i.user.mention, inline=False)
             embed.set_footer(text=f"แจ้งเมื่อ {get_thailand_time().strftime('%d/%m/%y %H:%M')}")
@@ -823,7 +845,7 @@ class GamepassCalculatorModal(Modal, title="🌸 คำนวณเกมพา�
             
             embed = discord.Embed(
                 title=f"🎮 Gamepass {format_number(robux)} Robux = {format_number(price_int)} บาท (เรท {rate})",
-                color=0xFFA500
+                color=PINK_COLOR
             )
             embed.set_footer(text="13bux 🌸")
             
@@ -855,7 +877,7 @@ class GamepassBahtCalculatorModal(Modal, title="🌸 คำนวณเงิน
             
             embed = discord.Embed(
                 title=f"🎮 {format_number(int(baht))} บาท",
-                color=0xFFA500
+                color=PINK_COLOR
             )
             embed.add_field(name=f"เรท {gamepass_rate}", value=f"{format_number(robux_amount)} Robux", inline=True)
             embed.set_footer(text="13bux 🌸")
@@ -1022,7 +1044,7 @@ async def handle_open_gamepass_ticket(interaction):
         # ===== Gamepass ticket embed: ผู้ซื้อ + rate =====
         embed = discord.Embed(
             title="🌸13bux🌸", 
-            color=0x00FF99
+            color=PINK_COLOR
         )
         embed.add_field(name="👤 ผู้ซื้อ", value=interaction.user.mention, inline=False)
         embed.add_field(name=f"💰 กดเกมพาสเรท ({gamepass_rate})", value="\u200b", inline=False)
@@ -1134,7 +1156,7 @@ async def handle_open_topup_ticket(interaction):
         image_embed = discord.Embed(
             title="💎 บริการเติมโรแท้ (Robux แท้)",
             description="ยินดีต้อนรับ! กรุณาเลือกแพ็กที่ต้องการด้านล่างนี้",
-            color=0x00FF99
+            color=PINK_COLOR
         )
         image_embed.add_field(name="👤 ผู้ซื้อ", value=interaction.user.mention, inline=False)
         image_embed.set_image(url=TOPUP_IMAGE_URL)
@@ -1147,7 +1169,7 @@ async def handle_open_topup_ticket(interaction):
         menu_embed = discord.Embed(
             title="📦 เลือกแพ็กที่ต้องการ",
             description="กรุณาเลือกแพ็กที่คุณต้องการด้านล่าง",
-            color=0x00FF99
+            color=PINK_COLOR
         )
         menu_embed.add_field(
             name="🌱 แพ็กเริ่มต้น", 
@@ -1263,7 +1285,7 @@ async def handle_open_issue_ticket(interaction):
         embed = discord.Embed(
             title="⚠️ แจ้งปัญหา", 
             description="กรุณาพิมพ์รายละเอียดปัญหาที่คุณพบในช่องนี้ได้เลย",
-            color=0xFFA500
+            color=PINK_COLOR
         )
         embed.add_field(name="👤 ผู้แจ้ง", value=interaction.user.mention, inline=False)
         embed.set_footer(text="13bux • แจ้งปัญหา")
@@ -1537,7 +1559,8 @@ async def update_rate_channel_name():
             print(f"❌ Rate channel not found: {RATE_CHANNEL_ID}")
             return
         
-        new_name = f"⋆˚🐷ㆍเรท{gamepass_rate}"
+        rate_str = format_rate_for_channel(gamepass_rate)
+        new_name = f"⋆˚🐷ㆍเรท{rate_str}"
         
         if channel.name != new_name:
             await bot.channel_edit_rate_limiter.acquire()
@@ -1871,7 +1894,7 @@ async def open_cmd(ctx):
     await update_channel_name()
     await update_main_channel()
     
-    embed = discord.Embed(title="✅ เปิดร้าน", description="ร้าน 13bux เปิดให้บริการ", color=0x00FF00)
+    embed = discord.Embed(title="✅ เปิดร้าน", description="ร้าน 13bux เปิดให้บริการ", color=PINK_COLOR)
     embed.set_footer(text=f"เวลา: {get_thailand_time().strftime('%d/%m/%y %H:%M')}")
     await ctx.send(embed=embed)
     print(f"✅ Shop opened by {ctx.author.name}, shop_open={shop_open}")
@@ -1896,7 +1919,7 @@ async def close_cmd(ctx):
     await update_channel_name()
     await update_main_channel()
     
-    embed = discord.Embed(title="🔴 ปิดร้าน", description="ร้าน 13bux ปิดให้บริการชั่วคราว", color=0xFF0000)
+    embed = discord.Embed(title="🔴 ปิดร้าน", description="ร้าน 13bux ปิดให้บริการชั่วคราว", color=PINK_COLOR)
     embed.set_footer(text=f"เวลา: {get_thailand_time().strftime('%d/%m/%y %H:%M')}")
     await ctx.send(embed=embed)
     print(f"✅ Shop closed by {ctx.author.name}, shop_open={shop_open}")
@@ -1917,7 +1940,7 @@ async def rate(ctx, normal_rate=None):
         pass
     
     if normal_rate is None:
-        embed = discord.Embed(title="🌸 เรทโรบัคปัจจุบัน", color=0x00FF99)
+        embed = discord.Embed(title="🌸 เรทโรบัคปัจจุบัน", color=PINK_COLOR)
         embed.add_field(name="🎮 Gamepass Rate", value=f"**{gamepass_rate}**", inline=True)
         await ctx.send(embed=embed)
         return
@@ -1937,7 +1960,7 @@ async def rate(ctx, normal_rate=None):
         embed = discord.Embed(
             title="✅ เปลี่ยนเรทเกมพาสเรียบร้อย",
             description=f"ตั้งค่าเรทเกมพาสเป็น **{gamepass_rate}** เรียบร้อยแล้ว",
-            color=0x00FF00
+            color=PINK_COLOR
         )
         await ctx.send(embed=embed)
         await update_main_channel()
@@ -2005,7 +2028,7 @@ async def od(ctx, *, expr):
         ticket_robux_data[str(ctx.channel.id)] = str(robux)
         save_json(ticket_robux_data_file, ticket_robux_data)
         
-        embed = discord.Embed(title="🌸คำสั่งซื้อสินค้า🌸", color=0xFFA500)
+        embed = discord.Embed(title="🌸คำสั่งซื้อสินค้า🌸", color=PINK_COLOR)
         embed.add_field(name="📦 ประเภทสินค้า", value="Gamepass", inline=False)
         embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(robux)}", inline=True)
         embed.add_field(name="💰 ราคาตามเรท", value=f"{format_number(price_int)} บาท", inline=True)
@@ -2095,7 +2118,7 @@ async def odt(ctx, *, expr=None):
                     balance_message = f"\n\n⚠️ **{buyer.mention} มีเงินบาทเหลือไม่พอ!** (มี {current_balance:.2f} บาท ต้องการ {price_int} บาท)"
             # NOTE: Removed the elif current_balance == 0 branch so no "no balance" message is shown
         
-        embed = discord.Embed(title="🌸คำสั่งซื้อเติมโรแท้🌸", color=0x00FF99)
+        embed = discord.Embed(title="🌸คำสั่งซื้อเติมโรแท้🌸", color=PINK_COLOR)
         embed.add_field(name="📦 ประเภทสินค้า", value="เติมโรแท้ (Robux แท้)", inline=False)
         embed.add_field(name="💎 จำนวน Robux", value=f"{format_number(robux)}", inline=True)
         embed.add_field(name="💰 ราคา", value=f"{format_number(price_int)} บาท", inline=True)
@@ -2208,7 +2231,7 @@ async def ty(ctx):
                 "ฝากให้เครดิต +1 ด้วยนะคะ ❤️\n\n"
                 "⚠️ **หมายเหตุ:** ตั๋วนี้จะถูกลบใน 1 ชั่วโมง"
             ),
-            color=0x00FF00
+            color=PINK_COLOR
         )
         embed.set_footer(text="13bux 🌸❤️")
         embed.set_thumbnail(url=THUMBNAIL_URL)
@@ -2275,7 +2298,7 @@ async def process_order_more_fixed(channel, buyer, interaction):
         
         order_embed = discord.Embed(
             title="🌸13bux🌸", 
-            color=0x00FF99
+            color=PINK_COLOR
         )
         order_embed.add_field(name="👤 ผู้ซื้อ", value=buyer.mention if buyer else "ไม่ระบุ", inline=False)
         order_embed.add_field(name=f"💰 กดเกมพาสเรท ({gamepass_rate})", value="\u200b", inline=False)
@@ -2349,7 +2372,7 @@ class PaymentView(View):
         embed = discord.Embed(
             title="💳 ชำระเงินผ่าน QR",
             description="**ธนาคารกรุงไทย (Krung Thai)**",
-            color=0x00FF00
+            color=PINK_COLOR
         )
         embed.add_field(name="🏦 ชื่อบัญชี", value="กฤติกา ตุล", inline=False)
         embed.set_image(url="https://media.discordapp.net/attachments/1486683482183958568/1551169408049872986/image.png?ex=6ab0fe96&is=6aafad16&hm=80656856521a1474f12fdd6b755a4d9957d05a9fb4d78a66dc88261dea891e71&=&format=webp&quality=lossless&width=1001&height=1299")
@@ -2360,7 +2383,7 @@ class PaymentView(View):
     async def account_callback(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="🏦 ธนาคารกรุงศรี Krungsri",
-            color=0x0099FF
+            color=PINK_COLOR
         )
         embed.add_field(name="🏦 ชื่อบัญชี", value="กฤติกา ตุล", inline=False)
         embed.add_field(name="🔢 เลขบัญชี", value="**952-057409-3 **", inline=False)
@@ -2382,7 +2405,7 @@ async def payment_cmd(ctx):
     embed = discord.Embed(
         title="🌸 เลือกช่องทางชำระเงิน",
         description="กรุณาเลือกช่องทางการชำระเงินด้านล่าง",
-        color=0xFFA500
+        color=PINK_COLOR
     )
     embed.set_footer(text="13bux 🌸")
     embed.set_thumbnail(url=THUMBNAIL_URL)
