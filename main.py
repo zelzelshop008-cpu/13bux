@@ -2106,7 +2106,7 @@ async def ty(ctx):
         
         view = View(timeout=None)
         credit_button = Button(
-            label="ให้เครดิต⭐", 
+            label="ให้เครดิต🌸", 
             style=discord.ButtonStyle.link,
             url=f"https://discord.com/channels/{ctx.guild.id}/{CREDIT_CHANNEL_ID}",
             emoji="☑️"
