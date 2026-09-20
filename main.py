@@ -179,8 +179,10 @@ ticket_counter = {"counter": 1, "date": get_thailand_time().strftime("%d%m%y")}
 ticket_archived_timers = {}
 user_robux_balance = {}
 daily_sales = {"robux_sold": 0, "date": get_thailand_time().strftime("%Y%m%d")}
-# Store accumulated price per ticket for topup (since robux can be combined from multiple button clicks)
+# Store accumulated price per ticket for topup
 ticket_topup_price = {}
+# Track which tickets already had a receipt sent (so !ty doesn't double-send)
+receipt_sent_tickets = set()
 
 sp_added_tracker = {}
 
@@ -525,36 +527,22 @@ def format_rate_for_channel(rate):
     except (ValueError, TypeError):
         return str(rate)
     
-    # If it's a whole number, just show the integer
     if rate_float.is_integer():
         return str(int(rate_float))
     
-    # Otherwise, replace the decimal point with "จุด"
-    rate_str = f"{rate_float:g}"  # removes trailing zeros
+    rate_str = f"{rate_float:g}"
     return rate_str.replace(".", "จุด")
 
 def calculate_topup_price_from_robux(total_robux):
     """
     Calculate the total baht price for a given robux amount using TOPUP_PRICES.
-    
-    Strategy:
-    1. If exact match in TOPUP_PRICES, return that price.
-    2. Otherwise, greedily use the largest package sizes that fit, then
-       fall back to per-unit pricing based on the smallest available package.
-    
-    This makes 160R x 2 = 320R  -> 66 x 2 = 132 baht
-    and 500R + 500R = 1000R     -> 160 x 2 = 320 baht
-    (which may differ from the bundle price of 1000R = 300 baht, but that's
-     fine — the customer picked individual buttons.)
     """
     if total_robux <= 0:
         return 0
     
-    # Exact match
     if total_robux in TOPUP_PRICES:
         return TOPUP_PRICES[total_robux]
     
-    # Greedy: use largest denominations that fit
     remaining = total_robux
     total_price = 0
     sorted_amounts = sorted(TOPUP_PRICES.keys(), reverse=True)
@@ -566,7 +554,6 @@ def calculate_topup_price_from_robux(total_robux):
             remaining -= count * amount
     
     if remaining > 0:
-        # Fallback: use base unit price derived from the smallest package
         smallest_amount = min(TOPUP_PRICES.keys())
         smallest_price = TOPUP_PRICES[smallest_amount]
         unit_price = smallest_price / smallest_amount
@@ -792,17 +779,12 @@ class TopupBigView(View):
 
 
 async def _handle_topup_amount(interaction, robux_amount):
-    """Handle when customer clicks a specific robux amount button.
-    
-    If the same button is clicked multiple times, accumulate the robux and
-    the baht price so the ticket tracks the customer's full order.
-    """
+    """Handle when customer clicks a specific robux amount button."""
     admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
     admin_mention = admin_role.mention if admin_role else f"<@&{ADMIN_ROLE_ID}>"
     
     ticket_id = str(interaction.channel.id)
     
-    # Accumulate robux for this ticket
     existing_robux = 0
     try:
         existing_robux = int(float(ticket_robux_data.get(ticket_id, 0)))
@@ -812,7 +794,6 @@ async def _handle_topup_amount(interaction, robux_amount):
     ticket_robux_data[ticket_id] = str(new_total_robux)
     save_json(ticket_robux_data_file, ticket_robux_data)
     
-    # Accumulate price for this ticket
     unit_price = TOPUP_PRICES.get(robux_amount, robux_amount)
     existing_price = 0
     try:
@@ -1112,7 +1093,6 @@ async def handle_open_gamepass_ticket(interaction):
         ))
         await interaction.followup.send("📩 เปิดตั๋วเรียบร้อย", view=view, ephemeral=True)
         
-        # ===== Gamepass ticket embed: ผู้ซื้อ + rate =====
         embed = discord.Embed(
             title="🌸13bux🌸", 
             color=PINK_COLOR
@@ -1223,7 +1203,6 @@ async def handle_open_topup_ticket(interaction):
         ))
         await interaction.followup.send("📩 เปิดตั๋วเติมโรแท้เรียบร้อย", view=view, ephemeral=True)
         
-        # ===== First embed: only ผู้ซื้อ + image =====
         image_embed = discord.Embed(
             title="💎 บริการเติมโรแท้ (Robux แท้)",
             description="ยินดีต้อนรับ! กรุณาเลือกแพ็กที่ต้องการด้านล่างนี้",
@@ -1236,7 +1215,6 @@ async def handle_open_topup_ticket(interaction):
         await channel.send(embed=image_embed)
         print(f"✅ ส่งรูปภาพเติมโรแท้ในตั๋ว {channel.name}")
         
-        # ===== Second: send the package selection embed with buttons =====
         menu_embed = discord.Embed(
             title="📦 เลือกแพ็กที่ต้องการ",
             description="กรุณาเลือกแพ็กที่คุณต้องการด้านล่าง",
@@ -1420,20 +1398,20 @@ class DeliveryView(View):
             
             try:
                 self.delivered = True
+                ticket_id = str(self.channel.id)
                 
                 if self.buyer:
-                    ticket_customer_data[str(self.channel.id)] = self.buyer.name
+                    ticket_customer_data[ticket_id] = self.buyer.name
                     save_json(ticket_customer_data_file, ticket_customer_data)
 
                     if self.robux_amount:
-                        ticket_id = str(self.channel.id)
                         await add_sp(self.buyer.id, self.robux_amount, ticket_id)
                         await add_daily_robux(self.robux_amount)
                         print(f"✅ Added {self.robux_amount} SP (x1) to {self.buyer.name} via DeliveryView")
                 
                 receipt_color = PINK_COLOR
                 
-                anonymous_mode = ticket_anonymous_mode.get(str(self.channel.id), False)
+                anonymous_mode = ticket_anonymous_mode.get(ticket_id, False)
                 buyer_display = "ไม่ระบุตัวตน" if anonymous_mode else (self.buyer.mention if self.buyer else "ไม่ทราบ")
                 
                 if not self.receipt_sent:
@@ -1456,7 +1434,9 @@ class DeliveryView(View):
                         log_embed.set_footer(text=f"จัดส่งสินค้าสำเร็จ 🤗 • {get_thailand_time().strftime('%d/%m/%y, %H:%M')}")
                         
                         await log_channel.send(embed=log_embed)
-                        print(f"✅ ส่งใบเสร็จไปยัง sales log channel เรียบร้อย")
+                        # Mark that this ticket's receipt has been sent
+                        receipt_sent_tickets.add(ticket_id)
+                        print(f"✅ ส่งใบเสร็จไปยัง sales log channel เรียบร้อย (จาก DeliveryView)")
                     
                     if self.buyer and not anonymous_mode and not self.is_reorder:
                         try:
@@ -2115,12 +2095,7 @@ async def od(ctx, *, expr):
 @bot.command(name="odt")
 @admin_only()
 async def odt(ctx, *, expr=None):
-    """Order command for topup tickets (topup-...).
-    
-    Usage:
-      !odt        -> use accumulated robux+price from button clicks
-      !odt 1000   -> override with explicit robux amount (price computed from TOPUP_PRICES)
-    """
+    """Order command for topup tickets (topup-...)."""
     
     if not ctx.channel.name.startswith("topup-"):
         await ctx.send("❌ คำสั่งนี้ใช้ได้เฉพาะในตั๋วเติมโรแท้ (topup-...) เท่านั้น", delete_after=5)
@@ -2128,7 +2103,6 @@ async def odt(ctx, *, expr=None):
     
     ticket_id = str(ctx.channel.id)
     
-    # Determine robux and price
     if expr is None:
         stored_robux = ticket_robux_data.get(ticket_id)
         if not stored_robux:
@@ -2140,7 +2114,6 @@ async def odt(ctx, *, expr=None):
             await ctx.send("❌ ไม่พบจำนวนโรบัคในตั๋วนี้ กรุณาระบุ เช่น `!odt 1000`", delete_after=5)
             return
         
-        # Use accumulated price from button clicks if available
         stored_price = ticket_topup_price.get(ticket_id)
         if stored_price is not None:
             try:
@@ -2157,7 +2130,6 @@ async def odt(ctx, *, expr=None):
             await ctx.send(f"❌ ตัวเลขไม่ถูกต้อง: {e}", delete_after=5)
             return
         
-        # For manual amount, compute price from TOPUP_PRICES (greedy combination)
         price = calculate_topup_price_from_robux(robux)
     
     try:
@@ -2181,7 +2153,6 @@ async def odt(ctx, *, expr=None):
                     buyer = msg.author
                     break
         
-        # Store final robux + price
         ticket_robux_data[ticket_id] = str(robux)
         save_json(ticket_robux_data_file, ticket_robux_data)
         ticket_topup_price[ticket_id] = str(price)
@@ -2292,7 +2263,6 @@ async def ty(ctx):
         is_topup = channel_name.startswith("topup-")
         product_type = "เติมโรแท้" if is_topup else "Gamepass"
         
-        # Determine robux amount and price
         robux_amount = ticket_robux_data.get(ticket_id, "0")
         try:
             robux_int = int(float(robux_amount))
@@ -2310,7 +2280,6 @@ async def ty(ctx):
             else:
                 price_int = calculate_topup_price_from_robux(robux_int)
         else:
-            # Gamepass: price = robux / rate
             if robux_int > 0:
                 price_int = round_price(robux_int / gamepass_rate)
         
@@ -2324,29 +2293,32 @@ async def ty(ctx):
                         gamepass_stock += 1
             save_stock_values()
         
-        # ===== Send receipt to SALES_LOG_CHANNEL_ID =====
-        # (This is now sent here too, so it works even if admin never clicked "ส่งสินค้าแล้ว")
-        try:
-            log_channel = bot.get_channel(SALES_LOG_CHANNEL_ID)
-            if log_channel:
-                anonymous_mode = ticket_anonymous_mode.get(ticket_id, False)
-                buyer_display = "ไม่ระบุตัวตน" if anonymous_mode else (buyer.mention if buyer else "ไม่ทราบ")
-                
-                log_embed = discord.Embed(
-                    title=f"🌸 ใบเสร็จการสั่งซื้อ ({product_type}) 🌸",
-                    color=PINK_COLOR
-                )
-                log_embed.add_field(name="😊 ผู้ซื้อ", value=buyer_display, inline=False)
-                log_embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(robux_int)}", inline=True)
-                log_embed.add_field(name="💰 ราคาตามเรท", value=f"{format_number(price_int)} บาท", inline=True)
-                log_embed.set_footer(text=f"จัดส่งสินค้าสำเร็จ 🤗 • {get_thailand_time().strftime('%d/%m/%y, %H:%M')}")
-                
-                await log_channel.send(embed=log_embed)
-                print(f"✅ ส่งใบเสร็จไปยัง sales log channel เรียบร้อย (จาก !ty)")
-            else:
-                print(f"❌ Sales log channel not found: {SALES_LOG_CHANNEL_ID}")
-        except Exception as e:
-            print(f"⚠️ Error sending receipt to sales log channel: {e}")
+        # ===== Send receipt to SALES_LOG_CHANNEL_ID only if not already sent =====
+        if ticket_id not in receipt_sent_tickets:
+            try:
+                log_channel = bot.get_channel(SALES_LOG_CHANNEL_ID)
+                if log_channel:
+                    anonymous_mode = ticket_anonymous_mode.get(ticket_id, False)
+                    buyer_display = "ไม่ระบุตัวตน" if anonymous_mode else (buyer.mention if buyer else "ไม่ทราบ")
+                    
+                    log_embed = discord.Embed(
+                        title=f"🌸 ใบเสร็จการสั่งซื้อ ({product_type}) 🌸",
+                        color=PINK_COLOR
+                    )
+                    log_embed.add_field(name="😊 ผู้ซื้อ", value=buyer_display, inline=False)
+                    log_embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(robux_int)}", inline=True)
+                    log_embed.add_field(name="💰 ราคาตามเรท", value=f"{format_number(price_int)} บาท", inline=True)
+                    log_embed.set_footer(text=f"จัดส่งสินค้าสำเร็จ 🤗 • {get_thailand_time().strftime('%d/%m/%y, %H:%M')}")
+                    
+                    await log_channel.send(embed=log_embed)
+                    receipt_sent_tickets.add(ticket_id)
+                    print(f"✅ ส่งใบเสร็จไปยัง sales log channel เรียบร้อย (จาก !ty)")
+                else:
+                    print(f"❌ Sales log channel not found: {SALES_LOG_CHANNEL_ID}")
+            except Exception as e:
+                print(f"⚠️ Error sending receipt to sales log channel: {e}")
+        else:
+            print(f"ℹ️ Receipt already sent for ticket {ticket_id} (from DeliveryView) — skipping in !ty")
         
         embed = discord.Embed(
             title="✅ ส่งของเรียบร้อย",
@@ -2387,6 +2359,7 @@ async def ty(ctx):
             order_more_view.add_item(order_more_btn)
             await ctx.send("📝 ต้องการสั่งของเพิ่มมั้ยคะ?", view=order_more_view)
         
+        # Cleanup ticket data and receipt tracker
         if ticket_id in ticket_robux_data:
             del ticket_robux_data[ticket_id]
             save_json(ticket_robux_data_file, ticket_robux_data)
@@ -2398,6 +2371,9 @@ async def ty(ctx):
         if ticket_id in ticket_topup_price:
             del ticket_topup_price[ticket_id]
             save_json(ticket_topup_price_file, ticket_topup_price)
+        
+        # Remove from receipt tracker so it doesn't grow forever
+        receipt_sent_tickets.discard(ticket_id)
         
         asyncio.create_task(move_to_delivered_category_with_cleanup(ctx.channel, buyer))
         await update_main_channel()
@@ -2641,7 +2617,6 @@ async def on_ready():
     else:
         print(f"⚠️ Notes button channel not found with ID: {NOTES_BUTTON_CHANNEL_ID}")
     
-    # Verify sales log channel
     sales_log = bot.get_channel(SALES_LOG_CHANNEL_ID)
     if sales_log:
         print(f"✅ Sales log channel found: {sales_log.name} (ID: {SALES_LOG_CHANNEL_ID})")
