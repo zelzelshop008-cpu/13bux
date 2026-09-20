@@ -1599,9 +1599,9 @@ async def update_channel_name():
         channel = bot.get_channel(MAIN_CHANNEL_ID)
         if channel:
             if shop_open:
-                new_name = "〔🟢เปิด〕กดสั่งซื้อห้องนี้"
+                new_name = "〔🛒〕สั่งซื้อ"
             else:
-                new_name = "〔🔴ปิดชั่วคราว〕"
+                new_name = "🔴ปิดร้าน"
             
             if channel.name != new_name:
                 await bot.channel_edit_rate_limiter.acquire()
