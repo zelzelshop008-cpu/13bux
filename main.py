@@ -81,6 +81,7 @@ intents.members = True
 
 # ============ CONSTANTS ============
 SUSHI_HEART_EMOJI = "💖"
+PINK_COLOR = 0xFF69B4  # Pink color for receipts
 
 WELCOME_MESSAGES = [
     "ยินดีต้อนรับ {0} สู่เซิร์ฟเวอร์! 🌸",
@@ -713,6 +714,10 @@ async def _handle_topup_amount(interaction, robux_amount):
     admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
     admin_mention = admin_role.mention if admin_role else f"<@&{ADMIN_ROLE_ID}>"
     
+    # Record robux amount for this ticket so !odt can reference it
+    ticket_robux_data[str(interaction.channel.id)] = str(robux_amount)
+    save_json(ticket_robux_data_file, ticket_robux_data)
+    
     embed = discord.Embed(
         title="📦 รับออร์เดอร์เติมโรแท้",
         description=f"คุณเลือกแพ็ก **{format_number(robux_amount)} Robux**",
@@ -732,7 +737,7 @@ async def _handle_topup_amount(interaction, robux_amount):
 class IssueReportModal(Modal, title="⚠️ แจ้งปัญหา"):
     issue_description = TextInput(
         label="อธิบายปัญหาที่พบ",
-        placeholder="กรุณาอธิบายปัญหาที่คุณพบ...",
+        placeholder="กรุณาอธิบายปัญหาที่พบ...",
         style=discord.TextStyle.paragraph,
         required=True,
         max_length=1000
@@ -1377,6 +1382,7 @@ class DeliveryView(View):
                 await i.response.edit_message(content="✅ สินค้าถูกส่งเรียบร้อยแล้ว", embed=None, view=None)
                 return
             
+            # Optional: still try to find attached image in recent messages, but don't require it
             delivery_image = None
             async for msg in self.channel.history(limit=10):
                 if msg.author == i.user and msg.attachments:
@@ -1387,109 +1393,90 @@ class DeliveryView(View):
                     if delivery_image:
                         break
             
-            if not delivery_image:
-                await i.response.send_message(
-                    "❌ ผู้ส่งสินค้าต้องแนบหลักฐานการส่งสินค้าก่อน !", 
-                    ephemeral=True
-                )
-                return
-            
-            confirm_view = View(timeout=300)
-            confirm_btn = Button(label="ยืนยัน", style=discord.ButtonStyle.success, emoji="✅")
-            edit_btn = Button(label="แก้ไข", style=discord.ButtonStyle.secondary, emoji="✏️")
-            
-            async def confirm_cb(interaction):
-                try:
-                    self.delivered = True
-                    
-                    if self.buyer:
-                        ticket_customer_data[str(self.channel.id)] = self.buyer.name
-                        save_json(ticket_customer_data_file, ticket_customer_data)
+            # ✅ Deliver directly without requiring proof image
+            try:
+                self.delivered = True
+                
+                if self.buyer:
+                    ticket_customer_data[str(self.channel.id)] = self.buyer.name
+                    save_json(ticket_customer_data_file, ticket_customer_data)
 
-                        if self.robux_amount:
-                            ticket_id = str(self.channel.id)
-                            await add_sp(self.buyer.id, self.robux_amount, ticket_id)
-                            await add_daily_robux(self.robux_amount)
-                            print(f"✅ Added {self.robux_amount} SP (x1) to {self.buyer.name} via DeliveryView")
+                    if self.robux_amount:
+                        ticket_id = str(self.channel.id)
+                        await add_sp(self.buyer.id, self.robux_amount, ticket_id)
+                        await add_daily_robux(self.robux_amount)
+                        print(f"✅ Added {self.robux_amount} SP (x1) to {self.buyer.name} via DeliveryView")
+                
+                # ===== PINK RECEIPT COLOR =====
+                receipt_color = PINK_COLOR
+                
+                anonymous_mode = ticket_anonymous_mode.get(str(self.channel.id), False)
+                buyer_display = "ไม่ระบุตัวตน" if anonymous_mode else (self.buyer.mention if self.buyer else "ไม่ทราบ")
+                
+                if not self.receipt_sent:
+                    self.receipt_sent = True
                     
-                    receipt_color = 0xFFA500
-                    
-                    anonymous_mode = ticket_anonymous_mode.get(str(self.channel.id), False)
-                    buyer_display = "ไม่ระบุตัวตน" if anonymous_mode else (self.buyer.mention if self.buyer else "ไม่ทราบ")
-                    
-                    if not self.receipt_sent:
-                        self.receipt_sent = True
+                    log_channel = bot.get_channel(SALES_LOG_CHANNEL_ID)
+                    if log_channel:
+                        log_embed = discord.Embed(
+                            title=f"🌸 ใบเสร็จการสั่งซื้อ ({self.product_type}) 🌸", 
+                            color=receipt_color
+                        )
+                        log_embed.add_field(name="😊 ผู้ซื้อ", value=buyer_display, inline=False)
+                        log_embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(self.robux_amount)}", inline=True)
+                        price_int = round_price(self.price)
+                        log_embed.add_field(name="💰 ราคาตามเรท", value=f"{format_number(price_int)} บาท", inline=True)
                         
-                        log_channel = bot.get_channel(SALES_LOG_CHANNEL_ID)
-                        if log_channel:
-                            log_embed = discord.Embed(
-                                title=f"🌸 ใบเสร็จการสั่งซื้อ ({self.product_type}) 🌸", 
+                        if delivery_image:
+                            log_embed.set_image(url=delivery_image)
+                        
+                        log_embed.set_footer(text=f"จัดส่งสินค้าสำเร็จ 🤗 • {get_thailand_time().strftime('%d/%m/%y, %H:%M')}")
+                        
+                        await log_channel.send(embed=log_embed)
+                        print(f"✅ ส่งใบเสร็จไปยัง sales log channel เรียบร้อย")
+                    
+                    if self.buyer and not anonymous_mode and not self.is_reorder:
+                        try:
+                            dm_embed = discord.Embed(
+                                title=f"🧾 ใบเสร็จการซื้อสินค้า ({self.product_type})",
+                                description="ขอบคุณที่ใช้บริการ 13bux นะคะ 🌸",
                                 color=receipt_color
                             )
-                            log_embed.add_field(name="😊 ผู้ซื้อ", value=buyer_display, inline=False)
-                            log_embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(self.robux_amount)}", inline=True)
+                            dm_embed.add_field(name="📦 สินค้า", value=self.product_type, inline=True)
+                            dm_embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(self.robux_amount)}", inline=True)
                             price_int = round_price(self.price)
-                            log_embed.add_field(name="💰 ราคาตามเรท", value=f"{format_number(price_int)} บาท", inline=True)
+                            dm_embed.add_field(name="💰 ราคา", value=f"{format_number(price_int)} บาท", inline=True)
                             
                             if delivery_image:
-                                log_embed.set_image(url=delivery_image)
+                                dm_embed.set_image(url=delivery_image)
                             
-                            log_embed.set_footer(text=f"จัดส่งสินค้าสำเร็จ 🤗 • {get_thailand_time().strftime('%d/%m/%y, %H:%M')}")
+                            dm_embed.add_field(name="📝 หมายเหตุ", value="หากมีปัญหากรุณาติดต่อแอดมินในเซิร์ฟ", inline=False)
+                            dm_embed.set_footer(text="13bux • ขอบคุณที่ใช้บริการ💖")
                             
-                            await log_channel.send(embed=log_embed)
-                            print(f"✅ ส่งใบเสร็จไปยัง sales log channel เรียบร้อย")
-                        
-                        if self.buyer and not anonymous_mode and not self.is_reorder:
-                            try:
-                                dm_embed = discord.Embed(
-                                    title=f"🧾 ใบเสร็จการซื้อสินค้า ({self.product_type})",
-                                    description="ขอบคุณที่ใช้บริการ 13bux นะคะ 🌸",
-                                    color=receipt_color
-                                )
-                                dm_embed.add_field(name="📦 สินค้า", value=self.product_type, inline=True)
-                                dm_embed.add_field(name="💸 จำนวน Robux", value=f"{format_number(self.robux_amount)}", inline=True)
-                                price_int = round_price(self.price)
-                                dm_embed.add_field(name="💰 ราคา", value=f"{format_number(price_int)} บาท", inline=True)
-                                
-                                if delivery_image:
-                                    dm_embed.set_image(url=delivery_image)
-                                
-                                dm_embed.add_field(name="📝 หมายเหตุ", value="หากมีปัญหากรุณาติดต่อแอดมินในเซิร์ฟ", inline=False)
-                                dm_embed.set_footer(text="13bux • ขอบคุณที่ใช้บริการ💖")
-                                
-                                await self.buyer.send(embed=dm_embed)
-                                print(f"✅ ส่งใบเสร็จไปยัง DM ของ {self.buyer.name} เรียบร้อย")
-                            except Exception as e:
-                                print(f"⚠️ ไม่สามารถส่ง DM ถึง {self.buyer.name}: {e}")
-                    
+                            await self.buyer.send(embed=dm_embed)
+                            print(f"✅ ส่งใบเสร็จไปยัง DM ของ {self.buyer.name} เรียบร้อย")
+                        except Exception as e:
+                            print(f"⚠️ ไม่สามารถส่ง DM ถึง {self.buyer.name}: {e}")
+                
+                # Confirm delivery immediately
+                try:
+                    await i.response.edit_message(
+                        content="✅ บันทึกการส่งสินค้าเรียบร้อย", 
+                        embed=None, 
+                        view=None
+                    )
+                except:
                     try:
-                        await interaction.response.edit_message(content="✅ บันทึกการส่งสินค้าเรียบร้อย", embed=None, view=None)
+                        await i.response.send_message("✅ บันทึกการส่งสินค้าเรียบร้อย", ephemeral=True)
                     except:
                         pass
                         
-                except Exception as e:
-                    print(f"Error in confirm_cb: {e}")
-                    try:
-                        await interaction.response.send_message(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
-                    except:
-                        pass
-            
-            async def edit_cb(interaction):
-                await interaction.response.send_message(
-                    "📝 กรุณาแนบหลักฐานการส่งสินค้า แล้วกดปุ่ม 'ส่งสินค้าแล้ว ✅' อีกครั้ง", 
-                    ephemeral=True
-                )
-            
-            confirm_btn.callback = confirm_cb
-            edit_btn.callback = edit_cb
-            
-            confirm_view.add_item(confirm_btn)
-            confirm_view.add_item(edit_btn)
-            
-            embed = discord.Embed(title="📦 ยืนยันการส่งสินค้า", description="ยืนยันหลักฐานการส่งสินค้านี้หรือไม่?", color=0x00FF00)
-            embed.set_image(url=delivery_image)
-            
-            await i.response.send_message(embed=embed, view=confirm_view, ephemeral=True)
+            except Exception as e:
+                print(f"Error in deliver_cb: {e}")
+                try:
+                    await i.response.send_message(f"❌ เกิดข้อผิดพลาด: {e}", ephemeral=True)
+                except:
+                    pass
         
         async def cancel_cb(i):
             if i.channel.id != self.channel.id:
@@ -1618,9 +1605,6 @@ async def update_main_channel():
         channel = bot.get_channel(MAIN_CHANNEL_ID)
         if not channel:
             return
-        
-        # Pink color for all statuses
-        PINK_COLOR = 0xFF69B4
         
         if not shop_open:
             status_text = "🌸13bux🌸 ปิดให้บริการ"
@@ -2129,6 +2113,108 @@ async def od(ctx, *, expr):
         
     except Exception as e:
         print(f"❌ Error in !od: {e}")
+        traceback.print_exc()
+        await ctx.send(f"❌ เกิดข้อผิดพลาด: {e}")
+
+
+# ============ NEW: !odt COMMAND FOR TOPUP TICKETS ============
+@bot.command(name="odt")
+@admin_only()
+async def odt(ctx, *, expr=None):
+    """Order command for topup tickets (topup-...). Usage: !odt <robux_amount>"""
+    
+    # Check if this is a topup ticket channel
+    if not ctx.channel.name.startswith("topup-"):
+        await ctx.send("❌ คำสั่งนี้ใช้ได้เฉพาะในตั๋วเติมโรแท้ (topup-...) เท่านั้น", delete_after=5)
+        return
+    
+    # Determine robux amount
+    if expr is None:
+        # Try to get from ticket_robux_data (set when customer clicked a package)
+        stored = ticket_robux_data.get(str(ctx.channel.id))
+        if stored:
+            try:
+                robux = int(float(stored))
+            except:
+                await ctx.send("❌ ไม่พบจำนวนโรบัคในตั๋วนี้ กรุณาระบุ เช่น `!odt 1000`", delete_after=5)
+                return
+        else:
+            await ctx.send("❌ กรุณาระบุจำนวนโรบัค เช่น `!odt 1000` หรือกดเลือกแพ็กก่อน", delete_after=5)
+            return
+    else:
+        try:
+            expr_clean = expr.replace(",", "").lower().replace("x", "*").replace("÷", "/").replace(" ", "")
+            robux = int(eval(expr_clean))
+        except Exception as e:
+            await ctx.send(f"❌ ตัวเลขไม่ถูกต้อง: {e}", delete_after=5)
+            return
+    
+    try:
+        # Try to find the buyer for this ticket
+        buyer = None
+        if str(ctx.channel.id) in ticket_buyer_data:
+            buyer_id = ticket_buyer_data[str(ctx.channel.id)].get("user_id")
+            if buyer_id:
+                buyer = ctx.guild.get_member(buyer_id)
+        
+        if not buyer:
+            # Try parsing from channel name topup-<username>-<userid>
+            parts = ctx.channel.name.split('-')
+            if len(parts) >= 3:
+                try:
+                    buyer = ctx.guild.get_member(int(parts[-1]))
+                except:
+                    pass
+        
+        if not buyer:
+            async for msg in ctx.channel.history(limit=30):
+                if not msg.author.bot and msg.author != ctx.guild.me:
+                    buyer = msg.author
+                    break
+        
+        # Record robux amount in ticket data
+        ticket_robux_data[str(ctx.channel.id)] = str(robux)
+        save_json(ticket_robux_data_file, ticket_robux_data)
+        
+        # Add buyer role
+        if buyer:
+            await add_buyer_role(buyer, ctx.guild)
+        
+        # ===== Topup uses real money pricing (1 THB = 1 Robux, adjust as needed) =====
+        # Since topup is "robux แท้" - typically priced 1:1 with THB at retail rates
+        # We'll compute price as robux * 1.0 for now, but you can adjust this
+        TOPUP_PRICE_PER_ROBUX = 1.0  # Change this if you have a different rate
+        price = robux * TOPUP_PRICE_PER_ROBUX
+        price_int = round_price(price)
+        
+        # Show balance if available
+        balance_message = None
+        if buyer:
+            current_balance = get_user_robux_balance(buyer.id)
+            if current_balance > 0:
+                if current_balance >= price_int:
+                    new_balance = deduct_user_robux_balance(buyer.id, price_int)
+                    balance_message = f"\n\n💰 **{buyer.mention} เหลือ {new_balance:.2f} บาท**"
+                else:
+                    balance_message = f"\n\n⚠️ **{buyer.mention} มีเงินบาทเหลือไม่พอ!** (มี {current_balance:.2f} บาท ต้องการ {price_int} บาท)"
+            elif current_balance == 0:
+                balance_message = f"\n\n💰 **{buyer.mention} ไม่มีเงินคงเหลือในระบบ**"
+        
+        embed = discord.Embed(title="🌸คำสั่งซื้อเติมโรแท้🌸", color=0x00FF99)
+        embed.add_field(name="📦 ประเภทสินค้า", value="เติมโรแท้ (Robux แท้)", inline=False)
+        embed.add_field(name="💎 จำนวน Robux", value=f"{format_number(robux)}", inline=True)
+        embed.add_field(name="💰 ราคา", value=f"{format_number(price_int)} บาท", inline=True)
+        
+        if balance_message:
+            embed.add_field(name="💵 เงินคงเหลือ", value=balance_message, inline=False)
+        
+        embed.set_footer(text=f"รับออร์เดอร์แล้ว 🤗 • {get_thailand_time().strftime('%d/%m/%y, %H:%M')}")
+        embed.set_thumbnail(url=THUMBNAIL_URL)
+        
+        await ctx.send(embed=embed, view=DeliveryView(ctx.channel, "เติมโรแท้", robux, price, buyer, is_reorder=False))
+        
+    except Exception as e:
+        print(f"❌ Error in !odt: {e}")
         traceback.print_exc()
         await ctx.send(f"❌ เกิดข้อผิดพลาด: {e}")
 
